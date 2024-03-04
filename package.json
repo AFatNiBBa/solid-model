@@ -1,0 +1,34 @@
+{
+  "name": "solid-model",
+  "version": "1.0.0",
+  "description": "Automatic view model for solid-js",
+  "author": "AFatNiBBa",
+  "license": "ISC",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "require": "./dist/index.umd.js",
+    "import": "./dist/index.mjs",
+    "types": "./dist/index.d.ts"
+  },
+  "scripts": {
+    "build": "vite build",
+    "save": "npm run build && npm publish"
+  },
+  "devDependencies": {
+    "@types/node": "^20.6.0",
+    "vite": "^4.4.9",
+    "vite-plugin-dts": "^3.5.3"
+  },
+  "dependencies": {
+    "solid-js": "^1.7.11"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AFatNiBBa/solid-model.git"
+  },
+  "keywords": [
+    "solid-js",
+    "model",
+    "view"
+  ]
+}
