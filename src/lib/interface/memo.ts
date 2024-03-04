@@ -4,7 +4,7 @@ import { Reactive, Store } from "../data";
 import { SignalHandler } from "./signal";
 
 /**
- * Gets the eventual getter of a property using the fast deprecated method {@link Object.prototype.__lookupGetter__}
+ * Gets the eventual getter of a property across the prototype chain using the fast deprecated method {@link Object.prototype.__lookupGetter__}
  * @param obj Object from which to get the getter
  * @param k Key of the property that may have a getter
  */

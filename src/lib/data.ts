@@ -1,5 +1,5 @@
 
-import { Accessor, Owner, Setter, createRoot, getOwner } from "solid-js";
+import { Accessor, Owner, Setter, Signal, createRoot, getOwner } from "solid-js";
 import { SignalHandler } from "./interface/signal";
 
 /** Registry that disposes the {@link Owner} of a reactive object when its proxy goes out of scope */
@@ -19,6 +19,12 @@ class RawData<T extends object> extends Identity<T> {
         #owner!: Owner;
 
         /**
+         * Tells whether the provided object is reactive
+         * @param obj The eventually reactive object
+         */
+        static is(obj: object) { return #proxy in obj && !!obj.#proxy; }
+
+        /**
          * Gets the proxy of a reactive object
          * @param obj The reactive object
          */
@@ -31,7 +37,7 @@ class RawData<T extends object> extends Identity<T> {
         static getRaw<T extends object>(obj: T) { return (obj as RawData<T>).#proxy.#raw as T; }
 
         /**
-         * Gets the signal store of a reactive object
+         * Gets the {@link Signal} store of a reactive object
          * @param obj The reactive object
          */
         static getStore<T extends object>(obj: T) { return (obj as RawData<T>).#proxy.#store; }
@@ -43,13 +49,13 @@ class RawData<T extends object> extends Identity<T> {
         static getOwner(obj: object) { return (obj as RawData<object>).#proxy.#owner; }
 
         /**
-         * Removes the and disposes the proxy from a reactive object, thus removing its reactivity
+         * Removes the proxy from a reactive object, thus removing its reactivity
          * @param obj The reactive object
          */
         static dispose(obj: object) { (obj as RawData<object>).#proxy.#raw.#proxy = undefined!; }
 
         /**
-         * Creates the reactive version of an object
+         * Creates a reactive proxy for an object
          * @param obj The object to make reactive
          * @param handler The {@link ProxyHandler} to use
          */

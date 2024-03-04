@@ -1,6 +1,6 @@
 
 import { Signal, SignalOptions, batch, createSignal, runWithOwner } from "solid-js";
-import { Reactive, Store } from "../data";
+import { IProperty, Reactive } from "../data";
 
 /** Handler that gives simple reactivity to arbitrary objects */
 export class SignalHandler implements ProxyHandler<object> {
@@ -99,7 +99,7 @@ export class SignalHandler implements ProxyHandler<object> {
     createSignal<T extends object, K extends keyof T>(t: T, k: K, v: T[K], equals?: SignalOptions<T[K]>["equals"]) {
         const name = this.getPropertyTag(t, k);
         const [ get, set ] = runWithOwner(Reactive.getOwner(t), () => createSignal(v, { name, equals }))!;
-        const out: Store<T>[K] = () => (get(), t[k]);
+        const out: IProperty<T[K]> = () => (get(), t[k]);
         out.set! = (x?) => batch(() => t[k] = set(x!));
         return out!;
     }
