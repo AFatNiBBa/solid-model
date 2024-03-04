@@ -13,8 +13,8 @@ export const getGetter = Function.prototype.call.bind((<any>Object.prototype).__
 /**
  * Like {@link SignalHandler}, but memoizes getters.
  * The eventual getter contained in the {@link PropertyDescriptor} returned by the {@link getOwnPropertyDescriptor} trap will NOT be memoized, because memos are binded and a raw getter may be called by other means.
- * Getters are bound to the reactive object, so they will ignore the receiver if the reactive object has been used as a prototype for something else.
- * Changes on the raw object are not detected by the memos.
+ * Getters are bound to the reactive object, so they'll be called without memoization if the current receiver is not the reactive proxy.
+ * Changes on the raw object are not detected by the memos
  */
 export class MemoHandler extends SignalHandler {
     /**
@@ -26,12 +26,14 @@ export class MemoHandler extends SignalHandler {
     get<T extends object, K extends keyof T>(t: T, k: K, r: T) {
         const store = Reactive.getStore(t);
         const temp = store[k];
-        if (temp) return temp();
-        if (temp === undefined) {
+        if (temp && (temp.set || r === Reactive.getProxy(t))) return temp();                // If the receiver is not the proxy it means that the current reactive object is the prototype of something else, in this case we can't use the memoized getters since they're bound to the proxy
+        reactive: if (temp === undefined) {
             const get = getGetter(t, k);
-            if (get) return createAndSaveMemo(this, store, t, k, get)();
+            if (get)
+                if (r !== Reactive.getProxy(t)) break reactive;                             // Getters won't even be memoized if the current receiver is not the proxy
+                else return createAndSaveMemo(this, store, t, k, get)();
             var desc: PropertyDescriptor | undefined;
-            if (!(k in t) || (desc = Object.getOwnPropertyDescriptor(t, k)) && !desc.set) // If this line gets executed I'm sure there's no getter, so I don't need to check
+            if (!(k in t) || (desc = Object.getOwnPropertyDescriptor(t, k)) && !desc.set)   // If this line gets executed I'm sure there's no getter, so I don't need to check
                 return (store[k] = this.createSignal(t, k, desc?.value))();
             store[k] = null;
         }

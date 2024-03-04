@@ -40,9 +40,10 @@ Handler that makes a `Signal` under the hood for each field of its target and pr
 - **`getPropertyTag()`**: Method that generates a recognizable name for the `Signal` of each `IProperty` to help debugging
 
 ### `MemoHandler`
-Handler that inherits the behaviours of `SignalHandler`, memoizes every getter of its target and provides the following overridable methods
+Handler that inherits the behaviours of `SignalHandler`, memoizes every getter of its target and provides the following overridable methods.
 - **`createMemo()`**: Method that's responsible for creating the `IProperty` for each getter property
 - **`onCircular()`**: Hook that handles the eventuality of a getter calling itself during its memoization phase
+This handler has some peculiarities you may want to check out, they're written on its documentation comment
 
 ## Utility
 The module also provides the following utilities:
