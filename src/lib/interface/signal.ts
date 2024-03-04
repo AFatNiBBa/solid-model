@@ -1,5 +1,5 @@
 
-import { Signal, SignalOptions, batch, createSignal, runWithOwner } from "solid-js";
+import { Signal, SignalOptions, batch, createSignal, equalFn, runWithOwner } from "solid-js";
 import { IProperty, Reactive } from "../data";
 
 /** Handler that gives simple reactivity to arbitrary objects */
@@ -94,14 +94,24 @@ export class SignalHandler implements ProxyHandler<object> {
      * @param t The object for which to create the {@link Signal}
      * @param k The key of the property for which to create the {@link Signal}
      * @param v The initial value of the {@link Signal}
-     * @param equals Eventual custom equality check for the {@link Signal}
      */
-    createSignal<T extends object, K extends keyof T>(t: T, k: K, v: T[K], equals?: SignalOptions<T[K]>["equals"]) {
-        const name = this.getPropertyTag(t, k);
-        const [ get, set ] = runWithOwner(Reactive.getOwner(t), () => createSignal(v, { name, equals }))!;
+    createSignal<T extends object, K extends keyof T>(t: T, k: K, v: T[K]) {
+        const opts: SignalOptions<T[K]> = { name: this.getPropertyTag(t, k), equals: (a, b) => this.compareChange(t, k, a, b) };
+        const [ get, set ] = runWithOwner(Reactive.getOwner(t), () => createSignal(v, opts))!;
         const out: IProperty<T[K]> = () => (get(), t[k]);
         out.set! = (x?) => batch(() => t[k] = set(x!));
         return out!;
+    }
+
+    /**
+     * Comparison function shared by each {@link IProperty} that will be created by this handler
+     * @param t The object containing the property that changed
+     * @param k The key of the property that changed
+     * @param prev The old value of the property
+     * @param next The new value of the property
+     */
+    compareChange<T extends object, K extends keyof T>(t: T, k: K, prev: T[K], next: T[K]) {
+        return equalFn(prev, next);
     }
 
     /**

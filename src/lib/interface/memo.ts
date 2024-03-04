@@ -1,6 +1,6 @@
 
 import { MemoOptions, Signal, createMemo, runWithOwner } from "solid-js";
-import { Reactive, Store } from "../data";
+import { IProperty, Reactive, Store } from "../data";
 import { SignalHandler } from "./signal";
 
 /**
@@ -57,12 +57,11 @@ export class MemoHandler extends SignalHandler {
      * @param t The object for which to create the memo
      * @param k The key of the property for which to create the memo
      * @param f The original getter of the property
-     * @param equals Eventual custom equality check for the memo
      */
-    createMemo<T extends object, K extends keyof T>(t: T, k: K, f: (this: T) => T[K], equals?: MemoOptions<T[K]>["equals"]) {
-        const name = this.getPropertyTag(t, k);
+    createMemo<T extends object, K extends keyof T>(t: T, k: K, f: (this: T) => T[K]): IProperty<T[K]> {
         const proxy = Reactive.getProxy(t);
-        return runWithOwner(Reactive.getOwner(proxy), () => createMemo(f.bind(proxy), undefined, { name, equals }))!;
+        const opts: MemoOptions<T[K]> = { name: this.getPropertyTag(t, k), equals: (a, b) => this.compareChange(t, k, a, b) };
+        return runWithOwner(Reactive.getOwner(proxy), () => createMemo(f.bind(proxy), undefined, opts))!;
     }
 
     /**
