@@ -60,7 +60,8 @@ class RawData<T extends object> extends Identity<T> {
          * @param handler The {@link ProxyHandler} to use
          */
         static create<T extends object>(obj: T, handler: ProxyHandler<object> = SignalHandler.prototype) {
-            if (#proxy in obj) return obj.#proxy as T;
+            const temp = #proxy in obj && obj.#proxy;
+            if (temp) return temp as T;
             const rawData = new RawData(obj), proxyData = new ProxyData(new Proxy(obj, handler) as T);
             rawData.#proxy = proxyData.#proxy = proxyData;
             proxyData.#raw = rawData;

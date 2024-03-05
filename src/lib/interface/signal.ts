@@ -1,5 +1,5 @@
 
-import { Signal, SignalOptions, batch, createSignal, equalFn, runWithOwner } from "solid-js";
+import { Signal, SignalOptions, createSignal, equalFn, runWithOwner } from "solid-js";
 import { IProperty, Reactive } from "../data";
 
 /** Handler that gives simple reactivity to arbitrary objects */
@@ -26,19 +26,13 @@ export class SignalHandler implements ProxyHandler<object> {
     /**
      * -
      * Writes the property from the {@link Signal} store, but still sets the value contained in {@link t} to avoid problems when interacting with the raw object directly.
-     * Creates the property on the {@link Signal} store if necessary
+     * Does NOT create the property on the {@link Signal} store if it's not already present, since nothing is listening to it yet anyway
      * @inheritdoc
      */
     set<T extends object, K extends keyof T>(t: T, k: K, v: T[K], r: T) {
         const store = Reactive.getStore(t);
         const temp = store[k];
-        if (temp?.set) return temp.set(() => v), true; // If there's a getter but not a setter i query the raw object since `MemoHandler` doesn't store the setter
-        if (temp === undefined) {
-            var desc: PropertyDescriptor | undefined;
-            store[k] = !(k in t) || (desc = Object.getOwnPropertyDescriptor(t, k)) && !desc.get && !desc.set
-                ? this.createSignal(t, k, v)
-                : null;
-        }
+        if (temp?.set) return temp.set(() => v), true; // If there's a getter but not a setter I query the raw object since `MemoHandler` doesn't store the setter
         return Reflect.set(t, k, v, r);
     }
 
@@ -99,7 +93,7 @@ export class SignalHandler implements ProxyHandler<object> {
         const opts: SignalOptions<T[K]> = { name: this.getPropertyTag(t, k), equals: (a, b) => this.compareChange(t, k, a, b) };
         const [ get, set ] = runWithOwner(Reactive.getOwner(t), () => createSignal(v, opts))!;
         const out: IProperty<T[K]> = () => (get(), t[k]);
-        out.set! = (x?) => batch(() => t[k] = set(x!));
+        out.set! = (next?) => set(prev => t[k] = typeof next === "function" ? (<any>next)(prev) : next);
         return out!;
     }
 
