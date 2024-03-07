@@ -60,7 +60,7 @@ export class MemoHandler extends SignalHandler {
      */
     createMemo<T extends object, K extends keyof T>(t: T, k: K, f: (this: T) => T[K]): IProperty<T[K]> {
         const proxy = Reactive.getProxy(t);
-        const opts: MemoOptions<T[K]> = { name: this.getPropertyTag(t, k), equals: (a, b) => this.compareChange(t, k, a, b) };
+        const opts: MemoOptions<T[K]> = { name: this.getPropertyTag(t, k), equals: this.getComparator(t, k) };
         return runWithOwner(Reactive.getOwner(proxy), () => createMemo(f.bind(proxy), undefined, opts))!;
     }
 

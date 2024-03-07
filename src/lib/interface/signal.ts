@@ -1,5 +1,5 @@
 
-import { Signal, SignalOptions, createSignal, equalFn, runWithOwner } from "solid-js";
+import { Signal, SignalOptions, createSignal, equalFn } from "solid-js";
 import { IProperty, Reactive } from "../data";
 
 /** Handler that gives simple reactivity to arbitrary objects */
@@ -60,13 +60,16 @@ export class SignalHandler implements ProxyHandler<object> {
     /**
      * -
      * If the property is present, and it isn't one with accessors, the property from the {@link Signal} store gets tracked.
+     * If the property on the {@link Signal} store is `null` it doesn't get tracked.
      * Creates the property on the {@link Signal} store if necessary
      * @inheritdoc
      */
     getOwnPropertyDescriptor<T extends object, K extends keyof T>(t: T, k: K): PropertyDescriptor | undefined {
         const desc = Reflect.getOwnPropertyDescriptor(t, k);
-        if (desc && !desc.get && !desc.set)
-            (Reactive.getStore(t)[k] ??= this.createSignal(t, k, desc.value!))();
+        if (!desc || desc.get || desc.set) return desc;
+        const store = Reactive.getStore(t), temp = store[k];
+        if (temp !== null)
+            (temp ?? (store[k] = this.createSignal(t, k, desc.value!)))();
         return desc;
     }
 
@@ -90,22 +93,20 @@ export class SignalHandler implements ProxyHandler<object> {
      * @param v The initial value of the {@link Signal}
      */
     createSignal<T extends object, K extends keyof T>(t: T, k: K, v: T[K]) {
-        const opts: SignalOptions<T[K]> = { name: this.getPropertyTag(t, k), equals: (a, b) => this.compareChange(t, k, a, b) };
-        const [ get, set ] = runWithOwner(Reactive.getOwner(t), () => createSignal(v, opts))!;
+        const opts: SignalOptions<T[K]> = { name: this.getPropertyTag(t, k), equals: this.getComparator(t, k), internal: true };
+        const [ get, set ] = createSignal(v, opts)!; // It's an internal `Signal`, so there's no need for an `Owner`
         const out: IProperty<T[K]> = () => (get(), t[k]);
         out.set! = (next?) => set(prev => t[k] = typeof next === "function" ? (<any>next)(prev) : next);
         return out!;
     }
 
     /**
-     * Comparison function shared by each {@link IProperty} that will be created by this handler
+     * Gets a comparison function for a specific {@link IProperty}
      * @param t The object containing the property that changed
      * @param k The key of the property that changed
-     * @param prev The old value of the property
-     * @param next The new value of the property
      */
-    compareChange<T extends object, K extends keyof T>(t: T, k: K, prev: T[K], next: T[K]) {
-        return equalFn(prev, next);
+    getComparator<T extends object, K extends keyof T>(t: T, k: K) {
+        return equalFn<T[K]>;
     }
 
     /**

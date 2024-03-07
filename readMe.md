@@ -37,7 +37,7 @@ const reactive = Reactive.create(raw, MemoHandler.prototype);
 ### `SignalHandler`
 Handler that makes a `Signal` under the hood for each field of its target and provides a few overridable methods
 - **`createSignal()`**: Method that's responsible for creating the `IProperty` for each property which hasn't got neither a getter nor a setter
-- **`compareChange()`**: Method that compares each value change and checks whether it should trigger an update
+- **`getComparator()`**: Method that creates a comparison function for each new `IProperty` created by the current handler
 - **`getPropertyTag()`**: Method that generates a recognizable name for the `Signal` of each `IProperty` to help debugging
 
 ### `MemoHandler`

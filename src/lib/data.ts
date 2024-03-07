@@ -79,7 +79,7 @@ class RawData<T extends object> extends Identity<T> {
  * If the property value is `undefined`, it means that the getter has not been cached yet.
  * If the property value is `null`, it means that the property has not to be proxied
  */
-export type Store<T extends object> = { [k in keyof T]?: IProperty<T[k]> | null };
+export type Store<T extends object> = { -readonly [k in keyof T]?: IProperty<T[k]> | null };
 
 /** Extensible interface that represents the posssible content of a {@link Store} */
 export interface IProperty<T> extends Accessor<T> { set?: Setter<T>; }
