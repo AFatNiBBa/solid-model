@@ -17,7 +17,9 @@ export class ReadOnlyAtom<T> {
 }
 
 /** Reactive atomic value without the inconveniences of {@link Signal} */
-export class Atom<T> extends ReadOnlyAtom<T> {	
+export class Atom<T> extends ReadOnlyAtom<T> {
+	get value() { return super.value; } // It doesn't get inherited by default due to the fact that adding the setter overrides the whole property
+
 	set value(v: T) { this.set(v); }
 
 	constructor(get: Accessor<T>, public set: (x: T) => void) { super(get); }
