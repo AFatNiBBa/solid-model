@@ -35,34 +35,26 @@ export class Atom<T> extends ReadOnlyAtom<T> {
      * The current value gets read through {@link untrack} to mimic the {@link Setter} behaviour
      * @param f Function that creates a new value based on the current one
      */
-	update<V extends T>(f: (prev: T) => V): V {
-		return this.value = f(untrack(this.get));
-	}
+	update<V extends T>(f: (prev: T) => V): V { return this.value = f(untrack(this.get)); }
 
 	/**
      * Creates a new {@link Atom} that applies a conversion to the current one
      * @param to Conversion function from {@link S} to {@link D}
      * @param from Conversion function from {@link D} to {@link S}
      */
-	convert<R>(to: (x: T) => R, from: (x: R) => T) {
-		return new Atom(() => to(this.value), v => this.value = from(v));
-	}
+	convert<R>(to: (x: T) => R, from: (x: R) => T) { return new Atom(() => to(this.value), v => this.value = from(v)); }
 
     /**
      * Creates an {@link Atom} that forwards an {@link Accessor} to another {@link Atom}
      * @param f The reactive {@link Accessor} to the {@link Atom} to forward
      */
-	static unwrap<T>(f: Accessor<Atom<T>>) {
-		return new this(() => f().value, v => f().value = v);
-	}
+	static unwrap<T>(f: Accessor<Atom<T>>) { return new this(() => f().value, v => f().value = v); }
 
     /**
      * Creates an {@link Atom} based on a {@link Signal}
      * @param param0 The {@link Signal} to forward
      */
-	static from<T>([ get, set ]: Signal<T>) {
-		return new this(get, v => set(() => v));
-	}
+	static from<T>([ get, set ]: Signal<T>) { return new this(get, v => set(() => v)); }
 
 	/**
 	 * Creates an {@link Atom} based on an object property.

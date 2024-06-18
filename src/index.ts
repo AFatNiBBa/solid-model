@@ -1,5 +1,5 @@
 
-export * from "./lib/interface/base";
+export { BaseHandler } from "./lib/interface/base";
 export * from "./lib/interface/disposable";
 export * from "./lib/interface/memo";
 export * from "./lib/interface/reactive";

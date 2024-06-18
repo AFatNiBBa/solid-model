@@ -29,8 +29,8 @@ export const getGetter = Function.prototype.call.bind((<any>Object.prototype).__
  * @param proto The prototype of the desired {@link ReadOnlyAtom} type
  * @returns A casted version of {@link f}
  */
-export function accessorToAtom<T, A extends ReadOnlyAtom<T>>(f: Accessor<T>, proto: new(...args: any[]) => A = <any>ReadOnlyAtom) {
-    const out: A = Object.setPrototypeOf(f, proto);
+export function accessorToAtom<T, A extends ReadOnlyAtom<T>>(f: Accessor<T>, ctor: new(...args: any[]) => A = <any>ReadOnlyAtom) {
+    const out: A = Object.setPrototypeOf(f, ctor.prototype);
     Object.defineProperty(out, "get" satisfies keyof A, { get() { return this; } });
     return out;
 }

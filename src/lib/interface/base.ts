@@ -1,9 +1,9 @@
 
 /** Class that returns the first argument provided to its constructor as its instance */
-export class Identity { constructor(obj: object) { return obj; } }
+class Identity { constructor(obj: object) { return obj; } }
 
 /** Class that defines the private properties that will be put inside the targets directly */
-export class TargetHandler extends Identity {
+class TargetHandler extends Identity {
     #proxy?: object;
 
     constructor(target: object, proxy?: object) {
