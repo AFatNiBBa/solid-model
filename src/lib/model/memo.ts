@@ -35,8 +35,8 @@ export class MemoHandler extends DisposableHandler {
     get<T extends object, K extends keyof T>(t: T, k: K, r: T) {
         const store = ReactiveHandler.getStore(t);
         const proxy = BaseHandler.getProxy(t);
-        const temp = store[k];
-        if (temp && (r === proxy || temp instanceof Atom)) return temp.value;               // If the receiver is not the proxy it means that the current reactive object is the prototype of something else, in this case we can't use the memoized getters since they're bound to the proxy
+        const temp = store[k]; //                  (↓ This breaks this ↓)
+        if (temp && (r === proxy || temp instanceof Atom)) return temp.value as T[K];       // If the receiver is not the proxy it means that the current reactive object is the prototype of something else, in this case we can't use the memoized getters since they're bound to the proxy
         reactive: if (temp === undefined) {
             const get = getGetter(t, k);
             if (get)
