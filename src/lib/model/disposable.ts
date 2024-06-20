@@ -5,7 +5,10 @@ import { ReactiveHandler } from "./reactive";
 /** Type of the explicitly disposable {@link Owner} of {@link DisposableHandler}s */
 export interface DisposableOwner extends Owner, Disposable { }
 
-/** Like {@link ReactiveHandler}, but has an internal general-purpose {@link DisposableOwner} */
+/**
+ * Like {@link ReactiveHandler}, but has an internal general-purpose {@link DisposableOwner}.
+ * The {@link DisposableOwner} keeps a reference to the previous {@link Owner} (To inherit the context), but not vice-versa
+ */
 export class DisposableHandler extends ReactiveHandler {
     #owner: DisposableOwner;
 
