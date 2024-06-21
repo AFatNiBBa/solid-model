@@ -1,6 +1,7 @@
 
 import { Accessor, Setter, Signal, createMemo, createSignal, on, untrack } from "solid-js";
-import { NamesOf, nameOf } from "./util";
+import { NamesOf, nameOf } from "./nameOf";
+import { IDENTITY } from "./util";
 
 /** Read-only version of {@link Atom} */
 export class ReadOnlyAtom<T> {
@@ -14,6 +15,17 @@ export class ReadOnlyAtom<T> {
 	 * @returns Whether the operation succeded, so always `false`
 	 */
 	trySet(_: T) { return false; }
+
+	/**
+     * Allows you to execute {@link trySet} on the current {@link ReadOnlyAtom} based on its current value.
+     * The current value gets read through {@link untrack} to mimic the {@link Setter} behaviour.
+	 * If {@link f} is not provided, it will set the current value again
+     * @param f Function that creates a new value based on the current one
+     */
+	update<V extends T>(f: (prev: T) => V = IDENTITY): V {
+		const out = f(untrack(this.get));
+		return this.trySet(out), out;
+	}
 }
 
 /** Reactive atomic value without the inconveniences of {@link Signal} */
@@ -31,13 +43,6 @@ export class Atom<T> extends ReadOnlyAtom<T> {
 	 * @returns Whether the operation succeded, so always `true`
 	 */
 	trySet(value: T): boolean { return this.value = value, true; }
-
-	/**
-     * Allows you to set the current {@link Atom} based on its current value.
-     * The current value gets read through {@link untrack} to mimic the {@link Setter} behaviour
-     * @param f Function that creates a new value based on the current one
-     */
-	update<V extends T>(f: (prev: T) => V): V { return this.value = f(untrack(this.get)); }
 
 	/**
      * Creates a new {@link Atom} that applies a conversion to the current one

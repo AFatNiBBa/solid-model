@@ -1,9 +1,9 @@
 
 import { MemoOptions, createMemo, onCleanup, runWithOwner } from "solid-js";
-import { accessorToAtom, getGetter } from "../util";
+import { accessorToAtom, getGetter } from "../helper/util";
 import { ReactiveHandler, Store } from "./reactive";
+import { Atom, ReadOnlyAtom } from "../helper/atom";
 import { DisposableHandler } from "./disposable";
-import { Atom, ReadOnlyAtom } from "../atom";
 import { BaseHandler } from "./base";
 
 /**

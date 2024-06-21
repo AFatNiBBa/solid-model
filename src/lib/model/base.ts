@@ -1,9 +1,8 @@
 
-/** Class that returns the first argument provided to its constructor as its instance */
-class Identity { constructor(obj: object) { return obj; } }
+import { IDENTITY } from "../helper/util";
 
 /** Class that defines the private properties that will be put inside the targets directly */
-class TargetHandler extends Identity {
+class TargetHandler extends IDENTITY {
     #proxy?: object;
 
     constructor(target: object, proxy?: object) {

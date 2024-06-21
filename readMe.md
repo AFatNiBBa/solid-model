@@ -55,15 +55,16 @@ The type of the output of `ReactiveHandler.getStore()`
 ### `DisposableOwner`
 Explicitly disposable version of a **"solid-js"** `Owner`
 
-### `Atom`
-Customizable and simplified wrappers for reactive states
+### `ReadOnlyAtom`
+Represents a POSSIBLY read-only reactive state
+- `trySet()`: Allows you to try to set the value of a `ReadOnlyAtom` in the hope that it's actually a normal `Atom`
 - `update()`: Like the `Setter` overload of a `Signal` that takes a function with the previous value
+
+### `Atom`
+Customizable and simplified wrappers for reactive states.
+- (Everything `ReadOnlyAtom` has)
 - `convert()`: Creates a new `Atom` that applies a conversion to the current one
 - `unwrap()` (static): Allows the use of an `Accessor` of an `Atom` without having to call the `Accessor` each time
 - `from()` (static): Creates an `Atom` based on a `Signal`
 - `prop()` (static): Creates an `Atom` based on an object property
 - `source()` (static): Similiar to `Atom.unwrap()`, but if the `Accessor` doesn't return anything it automatically creates an internal `Signal` in which to store the value
-
-### `ReadOnlyAtom`
-Base class of `Atom`, represents a read-only reactive state
-- `trySet()`: Allows you to try to set the value of a `ReadOnlyAtom` in the hope that it's actually a normal `Atom`

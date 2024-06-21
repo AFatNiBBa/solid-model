@@ -1,7 +1,7 @@
 
 import { SignalOptions, createSignal, equalFn } from "solid-js";
-import { Atom, ReadOnlyAtom } from "../atom";
-import { accessorToAtom } from "../util";
+import { Atom, ReadOnlyAtom } from "../helper/atom";
+import { accessorToAtom } from "../helper/util";
 import { BaseHandler } from "./base";
 
 /**
