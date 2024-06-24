@@ -104,7 +104,8 @@ export class ReactiveHandler extends BaseHandler implements ProxyHandler<object>
 
     /**
      * Creates an {@link Atom} that is supposed to end up in the {@link Store} of {@link t}.
-     * The output {@link Atom} will be the same object as its getter, to reduce memory footprint
+     * The output {@link Atom} will be the same object as its getter, to reduce memory footprint.
+     * The getter will be wrapped in a function that returns the true value of the property, this will handle modifications on the raw object
      * @param t The object for which to create the {@link Atom}
      * @param k The key of the property for which to create the {@link Atom}
      * @param v The initial value of the {@link Atom}
@@ -112,8 +113,8 @@ export class ReactiveHandler extends BaseHandler implements ProxyHandler<object>
     createAtom<T extends object, K extends keyof T>(t: T, k: K, v: T[K]) {
         const opts: SignalOptions<T[K]> = { name: this.getPropertyTag(t, k), equals: this.getComparator(t, k), internal: true };
         const [ get, set ] = createSignal(v, opts)!; // It's an internal `Signal`, so there's no need for an `Owner`
-        const out = accessorToAtom(get, Atom<T[K]>);
-        out.set = x => set(() => x);
+        const out = accessorToAtom(() => (get(), t[k]), Atom<T[K]>);
+        out.set = x => set(() => t[k] = x);
         return out;
     }
 

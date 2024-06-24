@@ -40,6 +40,7 @@ It also provides a few custom overridable traps
 ### `DisposableHandler`
 Handler that provides a general-purpose `DisposableOwner`
 - `getOwner()` (static): Gets the `DisposableOwner` that handles the reactive resources of the current object
+- `createOwner()`: Method that's responsible for creating the `DisposableOwner` for each object that uses `DisposableHandler`
 
 ### `MemoHandler`
 Handler that inherits the behaviours of `ReactiveHandler` and memoizes every getter of its target
