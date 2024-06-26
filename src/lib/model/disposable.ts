@@ -21,6 +21,16 @@ export class DisposableHandler extends ReactiveHandler {
     static getOwner(obj: object) { return this.getProxy(obj as DisposableHandler).#owner; }
 
     /**
+     * -
+     * Disposes the {@link DisposableOwner} of the proxied object
+     * @inheritdoc
+     */
+    static dispose(obj: object) {
+        super.dispose(obj);
+        this.getOwner(obj)[Symbol.dispose]();
+    }
+
+    /**
      * Creates a {@link DisposableOwner} for the given object
      * @param _ The object for which to create the {@link DisposableOwner}
      */

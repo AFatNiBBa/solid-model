@@ -16,11 +16,14 @@ export class MemoHandler extends DisposableHandler {
 
     constructor(target: object, proxy: object) {
         super(target, proxy);
+
+        // It is not on an override of `BaseHandler.dispose()` because this operation is not optional
         runWithOwner(DisposableHandler.getOwner(this), () => {
             onCleanup(() => {
                 const store = ReactiveHandler.getStore(this);
+                var temp: ReadOnlyAtom<unknown> | null | undefined;
                 for (const k of Reflect.ownKeys(store) as (keyof typeof store)[])
-                    if (!(store[k] instanceof Atom))
+                    if ((temp = store[k]) && !(temp instanceof Atom))
                         delete store[k];
             });
         });

@@ -23,6 +23,16 @@ export class ReactiveHandler extends BaseHandler implements ProxyHandler<object>
 
     /**
      * -
+     * Empties the {@link Store} of the reactive object
+     * @inheritdoc
+     */
+    static dispose(obj: object) {
+        super.dispose(obj);
+        this.getProxy(obj as ReactiveHandler).#store = Object.create(null);
+    }
+
+    /**
+     * -
      * Reads the property from the {@link Store}, but still returns the value contained in {@link t} to avoid problems when interacting with the raw object directly.
      * Creates the property on the {@link Store} if necessary
      * @inheritdoc
