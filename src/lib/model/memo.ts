@@ -1,5 +1,5 @@
 
-import { MemoOptions, createMemo, onCleanup, runWithOwner } from "solid-js";
+import { MemoOptions, Owner, createMemo, onCleanup, runWithOwner } from "solid-js";
 import { accessorToAtom, getGetter } from "../helper/util";
 import { ReactiveHandler, Store } from "./reactive";
 import { Atom, ReadOnlyAtom } from "../helper/atom";
@@ -13,22 +13,6 @@ import { BaseHandler } from "./base";
  * Changes on the raw object are not detected by the memos
  */
 export class MemoHandler extends DisposableHandler {
-
-    constructor(target: object, proxy: object) {
-        super(target, proxy);
-
-        // It is not on an override of `BaseHandler.dispose()` because this operation is not optional
-        runWithOwner(DisposableHandler.getOwner(this), () => {
-            onCleanup(() => {
-                const store = ReactiveHandler.getStore(this);
-                var temp: ReadOnlyAtom<unknown> | null | undefined;
-                for (const k of Reflect.ownKeys(store) as (keyof typeof store)[])
-                    if ((temp = store[k]) && !(temp instanceof Atom))
-                        delete store[k];
-            });
-        });
-    }
-
     /**
      * -
      * If the property has a getter, it creates a binded memo on the {@link Store} if necessary.
@@ -82,7 +66,7 @@ export class MemoHandler extends DisposableHandler {
 /**
  * Wrapper around {@link MemoHandler.createMemo} that handles circular references inside getters.
  * Ensures that if the memo calls itself it won't be created multiple times by setting its slot on {@link store} to `null`.
- * It saves the memo on {@link store}
+ * It saves the memo on {@link store} and ensures it gets removed when its {@link Owner} gets disposed
  * @param handler The current proxy handler that's being used
  * @param store The {@link Signal} store on which to save the newly created memo
  * @param t The object for which to create the memo
@@ -91,5 +75,6 @@ export class MemoHandler extends DisposableHandler {
  */
 function createAndSaveMemo<T extends object, K extends keyof T>(handler: MemoHandler, store: Store<T>, t: T, k: K, f: (this: T) => T[K]) {
     store[k] = null;
+    runWithOwner(DisposableHandler.getOwner(t), () => onCleanup(() => delete store[k]));
     return store[k] = handler.createMemo(t, k, f);
 }

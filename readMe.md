@@ -13,7 +13,8 @@ The module provides a set of `ProxyHandler`s out-of-the-box that can be used to 
 These handlers are available through inheritable classes, since the default ones haven't got any instance field you can use their prototype directly.
 Any instance field defined on handlers will be defined on their proxy, especially private fields.
 Each handler also provides static methods for introspection, these works on both the raw object and its reactive proxy.
-For example
+You should use the static methods provided by the handler you're actually using since they could be overridden adding more specific behaviours.
+For example:
 ```ts
 import { MemoHandler } from "solid-model";
 
@@ -26,7 +27,8 @@ const reactive = MemoHandler.create(raw);
 - `getProxy()` (static): Gets the proxy of a reactive object
 - `setProxy()` (static): Sets the proxy of a reactive object
 - `getRaw()` (static): Gets the raw version of a reactive object
-- `create()`: Creates a proxy for an object using the current handler
+- `create()` (static): Creates a proxy for an object using the current handler
+- `dispose()` (static): Detaches the proxy and eases the garbage collector's job by cleaning some caches
 
 ### `ReactiveHandler`
 Handler that makes an `Atom` under the hood for each field of its target
