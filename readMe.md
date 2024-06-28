@@ -28,7 +28,7 @@ const reactive = MemoHandler.create(raw);
 - `setProxy()` (static): Sets the proxy of a reactive object
 - `getRaw()` (static): Gets the raw version of a reactive object
 - `create()` (static): Creates a proxy for an object using the current handler
-- `dispose()` (static): Detaches the proxy and eases the garbage collector's job by cleaning some caches
+- `detach()` (static): Detaches the proxy from its target
 
 ### `ReactiveHandler`
 Handler that makes an `Atom` under the hood for each field of its target

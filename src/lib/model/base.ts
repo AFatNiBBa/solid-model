@@ -60,10 +60,8 @@ export class BaseHandler extends TargetHandler {
     static create<T extends object>(obj: T) { return new this(obj, new Proxy(obj, this.prototype as ProxyHandler<object>)) as T; }
 
     /**
-     * Runs a series of optional cleanup operations to make the garbage collector's job easier
-     * -
-     * Detatches the {@link Proxy} from a proxied object
-     * @param obj The reactive object
+     * Detatches the {@link Proxy} from its target
+     * @param obj The proxied object
      */
-    static dispose(obj: object) { this.setProxy(this.getRaw(obj)); }
+    static detach(obj: object) { this.setProxy(this.getRaw(obj)); }
 }
