@@ -64,13 +64,12 @@ export class Atom<T> extends ReadOnlyAtom<T> {
 	static from<T>([ get, set ]: Signal<T>) { return new this(get, v => set(() => v)); }
 
 	/**
-	 * Creates an {@link Atom} based on an object property.
-	 * The result of {@link k} will be memoized, while {@link obj}'s one won't
+	 * Creates an {@link Atom} based on an object property
 	 * @param obj The object containing the property
 	 * @param k A function that returns the key of the property and will be passed to {@link nameOf}
 	 */
 	static prop<T, K extends keyof T>(obj: Accessor<T>, k: (x: NamesOf<T>) => K) {
-		const temp = createMemo(() => nameOf<T, K>(k));
+		const temp = () => nameOf<T, K>(k);
 		return new this(() => obj()[temp()], v => obj()[temp()] = v);
 	}
 
