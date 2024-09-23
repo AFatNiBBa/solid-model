@@ -1,5 +1,5 @@
 
-import { Accessor, Setter, Signal, createMemo, createSignal, on, untrack } from "solid-js";
+import { Accessor, MemoOptions, Setter, Signal, createMemo, createSignal, on, untrack } from "solid-js";
 import { NamesOf, nameOf } from "./nameOf";
 import { IDENTITY } from "./util";
 
@@ -43,6 +43,12 @@ export class Atom<T> extends ReadOnlyAtom<T> {
 	 * @returns Whether the operation succeded, so always `true`
 	 */
 	trySet(value: T): boolean { return this.value = value, true; }
+
+	/**
+	 * Creates a new {@link Atom} with the setter of the current one and a memoized version of its getter
+	 * @param opts The memo's settings
+	 */
+	memo(opts?: MemoOptions<T>) { return new Atom(createMemo(this.get, undefined, opts), this.set); }
 
 	/**
      * Creates a new {@link Atom} that applies a conversion to the current one
