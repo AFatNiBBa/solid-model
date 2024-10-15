@@ -1,5 +1,5 @@
 
-import { Accessor, MemoOptions, Setter, Signal, createMemo, createSignal, on, untrack } from "solid-js";
+import { Accessor, MemoOptions, Setter, Signal, createMemo, createSelector, createSignal, equalFn, on, untrack } from "solid-js";
 import { NamesOf, nameOf } from "./nameOf";
 import { IDENTITY } from "./util";
 
@@ -56,6 +56,28 @@ export class Atom<T> extends ReadOnlyAtom<T> {
      * @param from Conversion function from {@link D} to {@link S}
      */
 	convert<R>(to: (x: T) => R, from: (x: R) => T) { return new Atom(() => to(this.value), v => this.value = from(v)); }
+
+	/**
+	 * Two way version of {@link createSelector}
+	 * @param comp The comparer function
+	 * @returns A boolean {@link Atom} factory
+	 */
+	selector(comp = equalFn<T>) {
+		const isSelected = createSelector(this.get, comp);
+
+		/**
+ 		 * Creates a boolean {@link Atom} for the specified value
+		 * @param value The value for which the resulting {@link Atom} will be `true`
+		 * @param def The value to set to the parent {@link Atom} when the resulting one is set to `false`
+		 */
+		return (value: T, def: T | (T extends undefined ? void : never)) => {
+			return new Atom(() => isSelected(value), v => {
+				if (v) return this.value = value;
+				if (!comp(value, this.value)) return;
+				this.value = <T>def;
+			});
+		};
+	}
 
     /**
      * Creates an {@link Atom} that forwards an {@link Accessor} to another {@link Atom}

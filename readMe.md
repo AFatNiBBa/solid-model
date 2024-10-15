@@ -68,6 +68,7 @@ Customizable and simplified wrappers for reactive states.
 - (Everything `ReadOnlyAtom` has)
 - `memo()`: Creates a new `Atom` with the setter of the current one and a memoized version of its getter
 - `convert()`: Creates a new `Atom` that applies a conversion to the current one
+- `selector()`: Two way version of `createSelector()`
 - `unwrap()` (static): Allows the use of an `Accessor` of an `Atom` without having to call the `Accessor` each time
 - `from()` (static): Creates an `Atom` based on a `Signal`
 - `prop()` (static): Creates an `Atom` based on an object property
