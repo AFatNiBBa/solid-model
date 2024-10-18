@@ -67,11 +67,12 @@ export class Atom<T> extends ReadOnlyAtom<T> {
 
 		/**
  		 * Creates a boolean {@link Atom} for the specified value
-		 * @param value The value for which the resulting {@link Atom} will be `true`
+		 * @param value The reactive {@link Accessor} to the value for which the resulting {@link Atom} will be `true`
 		 * @param def The value to set to the parent {@link Atom} when the resulting one is set to `false`
 		 */
-		return (value: T, def: T | (T extends undefined ? void : never)) => {
-			return new Atom(() => isSelected(value), v => {
+		return (f: Accessor<T>, def: T | (T extends undefined ? void : never)) => {
+			return new Atom(() => isSelected(f()), v => {
+				const value = f();
 				if (v) return this.value = value;
 				if (!comp(value, this.value)) return;
 				this.value = <T>def;
