@@ -5,6 +5,9 @@ import { Accessor } from "solid-js";
 /** Function that returns whaterver got inside of it and can be used as a class */
 export const IDENTITY: { (x: any): any, new(x?: any): { } } = function(x: any) { return x; } as any;
 
+/** Function that does nothing */
+export const NO_OP = () => { };
+
 /**
  * Makes an instance function static.
  * It creates a function that behaves like {@link Function.call} of {@link f}.

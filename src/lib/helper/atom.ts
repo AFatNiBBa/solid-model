@@ -1,7 +1,7 @@
 
 import { Accessor, MemoOptions, Setter, Signal, createMemo, createSelector, createSignal, equalFn, on, untrack } from "solid-js";
 import { NamesOf, nameOf } from "./nameOf";
-import { IDENTITY } from "./util";
+import { IDENTITY, NO_OP } from "./util";
 
 /** Read-only version of {@link Atom} */
 export class ReadOnlyAtom<T> {
@@ -56,6 +56,23 @@ export class Atom<T> extends ReadOnlyAtom<T> {
      * @param from Conversion function from {@link D} to {@link S}
      */
 	convert<R>(to: (x: T) => R, from: (x: R) => T) { return new Atom(() => to(this.value), v => this.value = from(v)); }
+
+	/**
+	 * Creates a new {@link Atom} that defers the setter of the current one.
+	 * When the setter is called, it will schedule the value to be set using {@link schedule}.
+	 * If the setter gets called again, the previous operation will be cancelled, unless it has already finished
+	 * @param schedule 
+	 * @returns 
+	 */
+	defer(schedule: (f: () => void) => () => void) {
+		var clear = NO_OP;
+		return new Atom(this.get, async v => {
+			clear();
+			await new Promise<void>(t => clear = schedule(t));
+			clear = NO_OP; // I make sure that the next time the setter gets called, it won't cancel the previous operation, since I have no guarantee that the user provided clear function already handles this edge case
+			this.value = v;
+		});
+	}
 
 	/**
 	 * Two way version of {@link createSelector}
