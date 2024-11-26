@@ -1,9 +1,9 @@
 
 /** Proxy that handles the core of {@link nameOf} */
-const PROXY_KEYOF: NamesOf<any> = new Proxy({}, { get: (_, k) => k });
+const PROXY_KEYOF: NamesOf<unknown> = new Proxy({}, { get: (_, k) => k });
 
 /** Type that maps each key of {@link T} to itself */
-export type NamesOf<T> = { [k in keyof T]: k };
+export type NamesOf<T> = { readonly [k in keyof T]-?: k };
 
 /**
  * Function that returns the name of the field accessed inside of {@link f}.
@@ -11,4 +11,4 @@ export type NamesOf<T> = { [k in keyof T]: k };
  * @param f A function that returns a value based on {@link NamesOf}
  * @returns The same thing that {@link f} returned
  */
-export const nameOf = <T, const R>(f: (x: NamesOf<T>) => R) => f(PROXY_KEYOF);
+export const nameOf = <T, const R>(f: (x: NamesOf<T>) => R) => f(PROXY_KEYOF as NamesOf<T>);
