@@ -1,19 +1,13 @@
 
-import { SignalOptions, createSignal, equalFn } from "solid-js";
-import { Atom, ReadOnlyAtom } from "../helper/atom";
-import { accessorToAtom } from "../helper/util";
+import { compareDescriptor } from "../helper/util";
+import { Internal, Store } from "../helper/model";
+import { Notifier } from "../helper/notifier";
+import { batch, equalFn } from "solid-js";
 import { BaseHandler } from "./base";
-
-/**
- * Type of the {@link Atom} store of reactive objects, each key is a property getter that eventually has a setter.
- * If the property value is `undefined`, it means that the getter has not been cached yet.
- * If the property value is `null`, it means that the property has not to be proxied
- */
-export type Store<T extends object> = { -readonly [k in keyof T]?: ReadOnlyAtom<T[k]> | null };
 
 /** Handler that gives simple reactivity to arbitrary objects */
 export class ReactiveHandler extends BaseHandler implements ProxyHandler<object> {
-    #store: Store<object> = Object.create(null);
+	#store: Store<object> = Object.create(null);    
     
     /**
      * Gets the {@link Store} of a reactive object
@@ -23,116 +17,144 @@ export class ReactiveHandler extends BaseHandler implements ProxyHandler<object>
 
     /**
      * -
-     * Reads the property from the {@link Store}, but still returns the value contained in {@link t} to avoid problems when interacting with the raw object directly.
-     * Creates the property on the {@link Store} if necessary
+     * Tracks the {@link k} property
      * @inheritdoc
      */
-    get<T extends object, K extends keyof T>(t: T, k: K, r: T) {
-        const store = ReactiveHandler.getStore(t); // You can NOT get this safely from `r` because private fields are not inherited in the prototype chain (And `r` could be something else other than the proxy)
-        const temp = store[k];
-        if (temp) return temp.value;
-        if (temp === undefined) {
-            var desc: PropertyDescriptor | undefined;
-            if (!(k in t) || (desc = Object.getOwnPropertyDescriptor(t, k)) && !desc.get && !desc.set)
-                return (store[k] = this.createAtom(t, k, desc?.value)).value;
-            store[k] = null;
-        }
-        return Reflect.get(t, k, r);
-    }
+    get<T extends object, K extends keyof T>(t: T, k: K, r: T): T[K] {
+		const out = Reflect.get(t, k, r);
+		Notifier.track(ReactiveHandler.getStore(t), k); // You can NOT get the store safely from `r` because private fields are not inherited in the prototype chain (And `r` could be something else other than the proxy)
+		return out;
+	}
 
     /**
      * -
-     * Writes the property from the {@link Store}, but still sets the value contained in {@link t} to avoid problems when interacting with the raw object directly.
-     * Does NOT create the property on the {@link Store} if it's not already present, since nothing is listening to it yet anyway
+     * Tracks the {@link k} property
      * @inheritdoc
      */
-    set<T extends object, K extends keyof T>(t: T, k: K, v: T[K], r: T) {
-        const store = ReactiveHandler.getStore(t);
-        const temp = store[k];
-        return temp?.trySet(v) || Reflect.set(t, k, v, r); // If there's a getter but not a setter I query the raw object since `MemoHandler` doesn't store the setter
-    }
+    has<T extends object>(t: T, k: keyof T) {
+		const out = Reflect.has(t, k);
+		Notifier.track(ReactiveHandler.getStore(t), k);
+		return out;
+	}
 
     /**
      * -
-     * Deletes the property from the {@link Store} ONLY if it's an own property of {@link t}
+     * Updates the {@link k} property and {@link Internal.SHAPE} IF there actually WAS a property
      * @inheritdoc
      */
-    deleteProperty<T extends object, K extends keyof T>(t: T, k: K) {
-        if (Object.hasOwn(t, k)) delete ReactiveHandler.getStore(t)[k];
-        return Reflect.deleteProperty(t, k);
-    }
+	deleteProperty<T extends object, K extends keyof T>(t: T, k: K) {
+		const own = Object.hasOwn(t, k);
+		if (!Reflect.deleteProperty(t, k)) return false;
+		if (!own) return true; // The delete operation returns `true` even when the property is not defined directly (Case in which it doesn't do anything)
+		batch(() => {
+			const store = ReactiveHandler.getStore(t);
+			Notifier.update(store, k);
+			Notifier.update(store, Internal.SHAPE);
+		});
+		return true;
+	}
 
     /**
      * -
-     * Sets the property from the {@link Store} to `null` (Not proxied) if {@link desc} has a getter or a setter, creates an {@link Atom} otherwise
+     * Updates the {@link k} property and {@link Internal.SHAPE} IF the descriptor metadata changed.
+     * Counterintuitively, this trap is called each time a value property is set
      * @inheritdoc
      */
-    defineProperty<T extends object, K extends keyof T>(t: T, k: K, desc: TypedPropertyDescriptor<T[K]>) {
-        const store = ReactiveHandler.getStore(t);
-        store[k] = desc.get || desc.set ? null : this.createAtom(t, k, desc.value!);
-        return Reflect.defineProperty(t, k, desc);
-    }
+	defineProperty<T extends object, K extends keyof T>(t: T, k: K, desc: TypedPropertyDescriptor<T[K]>) {
+		const prev = Reflect.getOwnPropertyDescriptor(t, k);
+		if (!Reflect.defineProperty(t, k, desc)) return false;
+		if (compareDescriptor(desc, prev)) return true;
+		batch(() => {
+			const store = ReactiveHandler.getStore(t);
+			Notifier.update(store, k);
+			Notifier.update(store, Internal.SHAPE);
+		});
+		return true;
+	}
 
     /**
      * -
-     * If the property is present, and it isn't one with accessors, the property from the {@link Store} gets tracked.
-     * If the property on the {@link Store} is `null` it doesn't get tracked.
-     * Creates the property on the {@link Store} if necessary
+     * Tracks the {@link k} property
      * @inheritdoc
      */
-    getOwnPropertyDescriptor<T extends object, K extends keyof T>(t: T, k: K): PropertyDescriptor | undefined {
-        const desc = Reflect.getOwnPropertyDescriptor(t, k);
-        if (!desc || desc.get || desc.set) return desc;
-        const store = ReactiveHandler.getStore(t), temp = store[k];
-        if (temp !== null)
-            (temp ?? (store[k] = this.createAtom(t, k, desc.value!))).value;
-        return desc;
-    }
+	getOwnPropertyDescriptor<T extends object, K extends keyof T>(t: T, k: K): PropertyDescriptor | undefined {
+		const out = Reflect.getOwnPropertyDescriptor(t, k);
+		Notifier.track(ReactiveHandler.getStore(t), k);
+		return out;
+	}
 
     /**
      * -
-     * It removes everything that's not an own property of {@link t} from the {@link Store}
+     * Tracks {@link Internal.SHAPE}
      * @inheritdoc
      */
-    setPrototypeOf(t: object, proto: object | null) {
-        const store = ReactiveHandler.getStore(t);
-        for (const k of Reflect.ownKeys(store) as (keyof typeof store)[])
-            if (!Object.hasOwn(t, k))
-                delete store[k];
-        return Reflect.setPrototypeOf(t, proto);
-    }
+	ownKeys(t: object) {
+		const out = Reflect.ownKeys(t);
+		Notifier.track(ReactiveHandler.getStore(t), Internal.SHAPE);
+		return out;
+	}
 
     /**
-     * Creates an {@link Atom} that is supposed to end up in the {@link Store} of {@link t}.
-     * The output {@link Atom} will be the same object as its getter, to reduce memory footprint.
-     * The getter will be wrapped in a function that returns the true value of the property, this will handle modifications on the raw object
-     * @param t The object for which to create the {@link Atom}
-     * @param k The key of the property for which to create the {@link Atom}
-     * @param v The initial value of the {@link Atom}
+     * -
+     * Tracks {@link Internal.PROTO}
+     * @inheritdoc
      */
-    createAtom<T extends object, K extends keyof T>(t: T, k: K, v: T[K]) {
-        const opts: SignalOptions<T[K]> = { name: this.getPropertyTag(t, k), equals: this.getComparator(t, k), internal: true };
-        const [ get, set ] = createSignal(v, opts)!; // It's an internal `Signal`, so there's no need for an `Owner`
-        const out = accessorToAtom(() => (get(), t[k]), Atom<T[K]>);
-        out.set = x => set(() => t[k] = x);
-        return out;
-    }
+	getPrototypeOf(t: object) {
+		const out = Reflect.getPrototypeOf(t);
+		Notifier.track(ReactiveHandler.getStore(t), Internal.PROTO);
+		return out;
+	}
 
     /**
-     * Gets a comparison function for a specific {@link IProperty}
-     * @param _t The object containing the property that changed
-     * @param _k The key of the property that changed
+     * -
+     * Updates {@link Internal.PROTO}, {@link Internal.SHAPE} and every NOT own property IF the prototype actually changed
+     * @param force Tells whether to force the update even if {@link proto} is the same as the previous prototype
+     * @inheritdoc
      */
-    getComparator<T extends object, K extends keyof T>(_t: T, _k: K) {
-        return equalFn<T[K]>;
-    }
+	setPrototypeOf(t: object, proto: object | null, force = false) {
+		if (!force && proto === Reflect.getPrototypeOf(t)) return true;
+		const out = Reflect.setPrototypeOf(t, proto);
+		batch(() => {
+			const store = ReactiveHandler.getStore(t);
+			Notifier.update(store, Internal.PROTO);
+			Notifier.update(store, Internal.SHAPE);
+			for (const k of Reflect.ownKeys(store) as (keyof typeof store)[])
+				if (!Object.hasOwn(t, k))
+					Notifier.update(store, k);
+		});
+		return out;
+	}
 
     /**
-     * Obtains a tag for given a property that will be used as a name for its {@link Atom}
-     * @param t The object for which to create the tag
-     * @param k The key of the property for which to create the tag
+     * -
+     * Tracks {@link Internal.IS_EXTENSIBLE}
+     * @inheritdoc
      */
-    getPropertyTag<T extends object>(t: T, k: keyof T) {
-        return `${t.constructor?.name}.${k.toString()}`;
-    }
+	isExtensible(t: object) {
+		const out = Reflect.isExtensible(t);
+		Notifier.track(ReactiveHandler.getStore(t), Internal.IS_EXTENSIBLE);
+		return out;
+	}
+
+    /**
+     * -
+     * Updates {@link Internal.IS_EXTENSIBLE}
+     * @inheritdoc
+     */
+	preventExtensions(t: object) {
+		if (!Reflect.preventExtensions(t)) return false;
+		Notifier.update(ReactiveHandler.getStore(t), Internal.IS_EXTENSIBLE);
+		return true;
+	}
+
+    /**
+     * Tells whether {@link next} is different from {@link prev}
+     * @param _t The object containing the values
+     * @param _k The property containing the values
+     * @param next The new value
+     * @param prev The old value
+     */
+	compare<T extends object, K extends keyof T>(_t: T, _k: K, next: T[K], prev: T[K]) {
+		return equalFn(next, prev);
+	}
 }

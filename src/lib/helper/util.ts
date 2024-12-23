@@ -1,7 +1,4 @@
 
-import { ReadOnlyAtom } from "./atom";
-import { Accessor } from "solid-js";
-
 /** Function that returns whaterver got inside of it and can be used as a class */
 export const IDENTITY: { (x: any): any, new(x?: any): { } } = function(x: any) { return x; } as any;
 
@@ -28,13 +25,15 @@ export const staticCall = <T, Args extends readonly unknown[], R>(f: (this: T, .
 export const getGetter = staticCall((<any>Object.prototype).__lookupGetter__ as <T, K extends keyof T>(this: T, k: K) => { (): T[K] } | undefined);
 
 /**
- * Creates a lightweight {@link ReadOnlyAtom} which has the same object for both the instance AND its getter to reduce memory footprint
- * @param f The getter
- * @param proto The prototype of the desired {@link ReadOnlyAtom} type
- * @returns A casted version of {@link f}
+ * Compares two {@link PropertyDescriptor}s.
+ * Defining a property means to merge the new descriptor to the old one, only what's on the {@link next} descriptor can change
+ * @param next The new descriptor to merge
+ * @param prev The old descriptor to be merged with
  */
-export function accessorToAtom<T, A extends ReadOnlyAtom<T>>(f: Accessor<T>, ctor: new(...args: any[]) => A = <any>ReadOnlyAtom) {
-    const out: A = Object.setPrototypeOf(f, ctor.prototype);
-    Object.defineProperty(out, "get" satisfies keyof A, { get() { return this; } });
-    return out;
+export function compareDescriptor(next: PropertyDescriptor, prev?: PropertyDescriptor) {
+	if (!prev) return false;
+	for (const k in next)
+		if (next[k as keyof typeof next] !== prev[k as keyof typeof prev])
+			return false;
+	return true;
 }
