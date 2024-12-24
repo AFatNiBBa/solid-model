@@ -24,9 +24,13 @@ export namespace Notifier {
      * Force an update on the effects that are tracking the given key
      * @param store The reactive tracker to use
      * @param k The key to update for
+     * @returns Whether there was something to update
      */
     export function update<T>(store: Store<T>, k: ForceTarget<T>) {
-        store[k]?.update();
+        const temp = store[k];
+        if (!temp) return false;
+        temp.update();
+        return true;
     }
 }
 
