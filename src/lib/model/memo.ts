@@ -1,9 +1,8 @@
 
 import { MemoOptions, Owner, createMemo, onCleanup, runWithOwner } from "solid-js";
 import { DisposableHandler } from "./disposable";
-import { Notifier } from "../helper/notifier";
 import { getGetter } from "../helper/util";
-import { Cache } from "../helper/model";
+import { Cache } from "../helper/type";
 
 /**
  * Like {@link DisposableHandler}, but memoizes getters.
@@ -19,6 +18,17 @@ export class MemoHandler extends DisposableHandler {
      * @param obj The memoized object
      */
     static getCache<T extends object>(obj: T) { return this.getProxy(obj as MemoHandler).#cache as Cache<T>; }
+
+    /**
+     * Deletes the memo of a property and notifies its update
+     * @param obj The object containing the property
+     * @param k The key of the property to reset
+     * @returns Whether there was something to update
+     */
+    static reset<T extends object>(obj: T, k: keyof T) {
+        delete this.getCache(obj)[k];
+        return this.prototype.update(obj, k);
+    }
     
     /**
      * -
@@ -39,7 +49,7 @@ export class MemoHandler extends DisposableHandler {
             f = this.memoize(t, k, get);
         }
 
-        Notifier.track(MemoHandler.getStore(t), k);
+        this.track(t, k);
         return f();
 	}
 
@@ -95,7 +105,7 @@ export class MemoHandler extends DisposableHandler {
         const proxy = MemoHandler.getProxy(t);
         const owner = MemoHandler.getOwner(t);
         const cache = MemoHandler.getCache(t);
-        const config: MemoOptions<T[K]> = { equals: (a, b) => this.compare(t, k, a, b) };
+        const config: MemoOptions<T[K]> = { name: this.tag(t, k), equals: (a, b) => this.compare(t, k, a, b) };
         cache[k] = () => this.circular(t, k, f);
         return cache[k] = runWithOwner(owner, () => {
             onCleanup(() => delete cache[k]);

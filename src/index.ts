@@ -1,8 +1,7 @@
 
 export * from "./lib/helper/atom";
-export * from "./lib/helper/model";
 export * from "./lib/helper/nameOf";
-export * from "./lib/helper/notifier";
+export * from "./lib/helper/type";
 export * from "./lib/helper/util";
 export { BaseHandler } from "./lib/model/base";
 export * from "./lib/model/disposable";

@@ -1,6 +1,6 @@
 
 import { Owner, createRoot, getOwner } from "solid-js";
-import { DisposableOwner } from "../helper/model";
+import { DisposableOwner } from "../helper/type";
 import { ReactiveHandler } from "./reactive";
 
 /** Like {@link ReactiveHandler}, but has an internal general-purpose {@link DisposableOwner} */
