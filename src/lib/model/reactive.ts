@@ -1,8 +1,8 @@
 
+import { batch, equalFn, untrack } from "solid-js";
 import { compareDescriptor } from "../helper/util";
 import { Internal, Store } from "../helper/model";
 import { Notifier } from "../helper/notifier";
-import { batch, equalFn } from "solid-js";
 import { BaseHandler } from "./base";
 
 /** Handler that gives simple reactivity to arbitrary objects */
@@ -24,6 +24,18 @@ export class ReactiveHandler extends BaseHandler implements ProxyHandler<object>
 		const out = Reflect.get(t, k, r);
 		Notifier.track(ReactiveHandler.getStore(t), k); // You can NOT get the store safely from `r` because private fields are not inherited in the prototype chain (And `r` could be something else other than the proxy)
 		return out;
+	}
+
+	/**
+     * -
+     * Calls {@link Reflect.set} ensuring nothing is tracked.
+	 * In some cases, the ECMAScript specification requires the {@link set} trap to call {@link getOwnPropertyDescriptor} and/or {@link defineProperty}, this means that:
+	 * 1) We do not need to update anything here, because {@link defineProperty} already does it EVERYTIME we need it, ONLY when we need it
+	 * 2) We need to untrack {@link Reflect.set}, because it may call {@link getOwnPropertyDescriptor} which would track the property
+     * @inheritdoc
+     */
+    set<T extends object, K extends keyof T>(t: T, k: K, v: T[K], r: T) {
+		return untrack(() => Reflect.set(t, k, v, r));
 	}
 
     /**
