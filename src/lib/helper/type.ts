@@ -4,6 +4,9 @@ import { Accessor, Owner } from "solid-js";
 /** Type of a directly disposable {@link Owner} */
 export interface DisposableOwner extends Owner, Disposable { }
 
+/** Type of the error thrown when a getter calls itself while being memoized */
+export class CircularGetterError extends Error { }
+
 /** Object that handles a forcing */
 export type Forcer = { count: number, track(): void, update(): void };
 

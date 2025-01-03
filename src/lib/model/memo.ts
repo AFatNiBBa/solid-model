@@ -1,8 +1,8 @@
 
 import { MemoOptions, Owner, createMemo, onCleanup, runWithOwner } from "solid-js";
+import { Cache, CircularGetterError } from "../helper/type";
 import { DisposableHandler } from "./disposable";
 import { getGetter } from "../helper/util";
-import { Cache } from "../helper/type";
 
 /**
  * Like {@link DisposableHandler}, but memoizes getters.
@@ -115,11 +115,11 @@ export class MemoHandler extends DisposableHandler {
 
     /**
      * Provides a fallback value for when a getter calls itself while being memoized
-     * @param _t The object containing the getter
-     * @param _k The property containing the getter
+     * @param t The object containing the getter
+     * @param k The property containing the getter
      * @param _f The original getter of the property
      */
-    circular<T extends object, K extends keyof T>(_t: T, _k: K, _f: (this: T) => T[K]) {
-        return null as T[K];
+    circular<T extends object, K extends keyof T>(t: T, k: K, _f: (this: T) => T[K]): T[K] {
+        throw new CircularGetterError(`The ${JSON.stringify(this.tag(t, k))} getter called itself while being memoized`);
     }
 }
