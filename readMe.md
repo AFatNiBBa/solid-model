@@ -8,7 +8,9 @@ This package aims to provide reactive objects, is similiar to `createMutable()` 
 - **Customizable**: Greater control over the interactions with the proxy
 - **Scoped**: It doesn't automatically apply reactivity to children of reactive objects
 
-## Standard `ProxyHandler`s
+## Documentation
+
+### Standard `ProxyHandler`s
 The module provides a set of `ProxyHandler`s out-of-the-box that can be used to customize the reactive behaviours of objects.
 These handlers are available through inheritable classes, since the default ones haven't got any instance field you can use their prototype directly.
 Any instance field defined on handlers will be defined on their proxy, especially private fields.
@@ -22,7 +24,7 @@ const raw = { /* ... */ };
 const reactive = MemoHandler.create(raw);
 ```
 
-### `BaseHandler`
+#### `BaseHandler`
 - `is()` (static): Tells whether the provided object is reactive
 - `getProxy()` (static): Gets the proxy of a reactive object
 - `setProxy()` (static): Sets the proxy of a reactive object
@@ -30,47 +32,42 @@ const reactive = MemoHandler.create(raw);
 - `create()` (static): Creates a proxy for an object using the current handler
 - `detach()` (static): Detaches the proxy from its target
 
-### `ReactiveHandler`
+#### `ReactiveHandler`
 Handler that makes an `Atom` under the hood for each field of its target
-- `getStore()` (static): Gets the object (Of type `Store`) that contains the `Atom`s for each reactive property
+- `getStore()` (static): Gets the object (Of type `Store`) that contains a `Forcer` for each tracked property
+- `track()`: Tracks the given key in the current effect
+- `update()`: Forces an update on the effects that are tracking the given key
+- `compare()`: Checks whether the value of a certain property has changed
+- `tag()`: Obtains a tag for given a property that will be used as a name for its related internals
 
-It also provides a few custom overridable traps
-- `createAtom()`: Method that's responsible for creating the `Atom` for each property which hasn't got neither a getter nor a setter
-- `getComparator()`: Method that creates a comparison function for the `Signal` of each new `Atom` created by the current handler
-- `getPropertyTag()`: Method that generates a recognizable name for the `Signal` of each `Atom` to help debugging
-
-### `DisposableHandler`
+#### `DisposableHandler`
 Handler that provides a general-purpose `DisposableOwner`
 - `getOwner()` (static): Gets the `DisposableOwner` that handles the reactive resources of the current object
-- `createOwner()`: Method that's responsible for creating the `DisposableOwner` for each object that uses `DisposableHandler`
+- `owner()`: Method that's responsible for creating the `DisposableOwner` for each object that uses `DisposableHandler`
 
-### `MemoHandler`
+#### `MemoHandler`
 Handler that inherits the behaviours of `ReactiveHandler` and memoizes every getter of its target
-- `createMemo()`: Method that's responsible for creating the `ReadOnlyAtom` for each getter property
+- `getCache()` (static): Gets the object (Of type `Cache`) that contains the memos of the cached getters
+- `reset()` (static): Deletes the memo of a property and notifies its update, thus forcing the memo to be recreated
+- `memoize()`: Creates and saves a memo for a property
+- `circular()`: Provides a fallback value for when a getter calls itself while being memoized
 
-## Utility
+#### `ReactiveArrayHandler`
+Handler that makes `ReactiveArray`s work with **"solid-js"**
+
+### Utility
 The module also exposes some of its internal utilities
-- `nameOf()`: Utility function that powers `Atom.prop()`
+- `DisposableOwner`: Explicitly disposable version of a **"solid-js"** `Owner`
+- `Forcer`: Object that allows `ReactiveHandler` to make properties reactive
+- `Store`: The type of the output of `ReactiveHandler.getStore()`
+- `Cache`: The type of the output of `MemoHandler.getCache()`
+- `ForceTarget`: Type that represents what can be targeted by `ReactiveHandler.track()` and `ReactiveHandler.update()`
+- `CircularGetterError`: Type of the error thrown by the base implementation of `MemoHandler.circular()`
+- `Identity`: Class that returns whatever was passed to it
+- `Internal`: A collection of symbols that each represents an internal of an object
+- `staticCall()`: Makes an instance function static
+- `getGetter()`: Gets the eventual getter of a property across the prototype chain
 
-### `Store`
-The type of the output of `ReactiveHandler.getStore()`
-
-### `DisposableOwner`
-Explicitly disposable version of a **"solid-js"** `Owner`
-
-### `ReadOnlyAtom`
-Represents a POSSIBLY read-only reactive state
-- `trySet()`: Allows you to try to set the value of a `ReadOnlyAtom` in the hope that it's actually a normal `Atom`
-- `update()`: Like the `Setter` overload of a `Signal` that takes a function with the previous value
-
-### `Atom`
-Customizable and simplified wrappers for reactive states.
-- (Everything `ReadOnlyAtom` has)
-- `memo()`: Creates a new `Atom` with the setter of the current one and a memoized version of its getter
-- `convert()`: Creates a new `Atom` that applies a conversion to the current one
-- `defer()`: Creates a new `Atom` that defers the setter of the current one
-- `selector()`: Two way version of `createSelector()`
-- `unwrap()` (static): Allows the use of an `Accessor` of an `Atom` without having to call the `Accessor` each time
-- `from()` (static): Creates an `Atom` based on a `Signal`
-- `prop()` (static): Creates an `Atom` based on an object property
-- `source()` (static): Similiar to `Atom.unwrap()`, but if the `Accessor` doesn't return anything it automatically creates an internal `Signal` in which to store the value
+#### `ReactiveArray`
+Reactive version of the `Array`
+- `update()`: Forces an update on all the effects that track the length of the current `Array`

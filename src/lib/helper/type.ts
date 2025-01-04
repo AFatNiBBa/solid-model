@@ -1,11 +1,9 @@
 
 import { Accessor, Owner } from "solid-js";
+import { Internal } from "./util";
 
 /** Type of a directly disposable {@link Owner} */
 export interface DisposableOwner extends Owner, Disposable { }
-
-/** Type of the error thrown when a getter calls itself while being memoized */
-export class CircularGetterError extends Error { }
 
 /** Object that handles a forcing */
 export type Forcer = { count: number, track(): void, update(): void };
@@ -23,16 +21,6 @@ export type Store<T> = { -readonly [k in ForceTarget<T>]?: Forcer | null };
  * If the property value is `null`, it means that no getter should be made for this property
  */
 export type Cache<T> = { -readonly [k in keyof T]?: Accessor<T[k]> | null };
-
-/**
- * A collection of symbols that each represents an object's internal.
- * Is used to notify changes to those internals
- */
-export namespace Internal {
-    export const IS_EXTENSIBLE = Symbol("[[IsExtensible]]");
-    export const PROTO = Symbol("[[Prototype]]");
-    export const SHAPE = Symbol("[[Shape]]");
-}
 
 /** Union of all the forceable parts of {@link T} */
 export type ForceTarget<T> = 

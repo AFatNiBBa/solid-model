@@ -1,8 +1,8 @@
 
 import { MemoOptions, Owner, createMemo, onCleanup, runWithOwner } from "solid-js";
-import { Cache, CircularGetterError } from "../helper/type";
+import { CircularGetterError, getGetter } from "../helper/util";
 import { DisposableHandler } from "./disposable";
-import { getGetter } from "../helper/util";
+import { Cache } from "../helper/type";
 
 /**
  * Like {@link DisposableHandler}, but memoizes getters.
@@ -20,7 +20,7 @@ export class MemoHandler extends DisposableHandler {
     static getCache<T extends object>(obj: T) { return this.getProxy(obj as MemoHandler).#cache as Cache<T>; }
 
     /**
-     * Deletes the memo of a property and notifies its update
+     * Deletes the memo of a property and notifies its update, thus forcing the memo to be recreated
      * @param obj The object containing the property
      * @param k The key of the property to reset
      * @returns Whether there was something to update

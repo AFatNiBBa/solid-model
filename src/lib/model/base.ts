@@ -1,8 +1,8 @@
 
-import { IDENTITY } from "../helper/util";
+import { Identity } from "../helper/util";
 
 /** Class that defines the private properties that will be put inside the targets directly */
-class TargetHandler extends IDENTITY {
+class TargetHandler extends Identity {
     #proxy?: object;
 
     constructor(target: object, proxy?: object) {

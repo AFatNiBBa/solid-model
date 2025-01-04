@@ -9,7 +9,7 @@ export class DisposableHandler extends ReactiveHandler {
 
     constructor(target: object, proxy: object) {
         super(target, proxy);
-        this.#owner = new.target.prototype.createOwner(target);
+        this.#owner = new.target.prototype.owner(target);
     }
     
     /**
@@ -22,7 +22,7 @@ export class DisposableHandler extends ReactiveHandler {
      * Creates a {@link DisposableOwner} for the given object
      * @param _ The object for which to create the {@link DisposableOwner}
      */
-    createOwner(_: object) {
+    owner(_: object) {
         return createRoot(d => {
             const out = <DisposableOwner>getOwner();
             out[Symbol.dispose] = d;

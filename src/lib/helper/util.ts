@@ -1,9 +1,22 @@
 
-/** Function that returns whaterver got inside of it and can be used as a class */
-export const IDENTITY: { (x: any): any, new(x?: any): { } } = function(x: any) { return x; } as any;
+/** Type of the error thrown when a getter calls itself while being memoized */
+export class CircularGetterError extends Error { }
 
-/** Function that does nothing */
-export const NO_OP = () => { };
+/**
+ * Class that returns whatever was passed to it.
+ * Used to dynamically attach private fields to objects
+ */
+export class Identity { constructor(obj: object) { return obj; } }
+
+/**
+ * A collection of symbols that each represents an internal of an object.
+ * They're used to track/notify changes to those internals
+ */
+export namespace Internal {
+    export const IS_EXTENSIBLE = Symbol("[[IsExtensible]]");
+    export const PROTO = Symbol("[[Prototype]]");
+    export const SHAPE = Symbol("[[Shape]]");
+}
 
 /**
  * Makes an instance function static.

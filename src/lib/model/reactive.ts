@@ -1,6 +1,7 @@
 
 import { batch, createSignal, equalFn, getListener, onCleanup, untrack } from "solid-js";
-import { Forcer, ForceTarget, Internal, Store } from "../helper/type";
+import { Forcer, ForceTarget, Store } from "../helper/type";
+import { Internal } from "../helper/util";
 import { BaseHandler } from "./base";
 
 /** Handler that gives simple reactivity to arbitrary objects */
@@ -158,7 +159,7 @@ export class ReactiveHandler extends BaseHandler implements ProxyHandler<object>
 	}
 
 	/**
-	 * Track the given key in the current effect
+	 * Tracks the given key in the current effect
 	 * @param t The object containing the key
 	 * @param k The key to track for
 	 * @param store The reactive tracker to use
@@ -176,7 +177,7 @@ export class ReactiveHandler extends BaseHandler implements ProxyHandler<object>
 	}
 
 	/**
-	 * Force an update on the effects that are tracking the given key
+	 * Forces an update on the effects that are tracking the given key
 	 * @param t The object containing the key
 	 * @param k The key to update for
 	 * @param store The reactive tracker to use
