@@ -3,12 +3,6 @@
 export class CircularGetterError extends Error { }
 
 /**
- * Class that returns whatever was passed to it.
- * Used to dynamically attach private fields to objects
- */
-export class Identity { constructor(obj: object) { return obj; } }
-
-/**
  * A collection of symbols that each represents an internal of an object.
  * They're used to track/notify changes to those internals
  */

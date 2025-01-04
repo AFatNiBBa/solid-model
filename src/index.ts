@@ -1,4 +1,5 @@
 
+export { IDENTITY } from "solid-atom";
 export * from "./lib/helper/array";
 export * from "./lib/helper/type";
 export * from "./lib/helper/util";

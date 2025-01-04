@@ -57,13 +57,13 @@ Handler that makes `ReactiveArray`s work with **"solid-js"**
 
 ### Utility
 The module also exposes some of its internal utilities
+- `IDENTITY`: Embedded from **"solid-atom"**
 - `DisposableOwner`: Explicitly disposable version of a **"solid-js"** `Owner`
 - `Forcer`: Object that allows `ReactiveHandler` to make properties reactive
 - `Store`: The type of the output of `ReactiveHandler.getStore()`
 - `Cache`: The type of the output of `MemoHandler.getCache()`
 - `ForceTarget`: Type that represents what can be targeted by `ReactiveHandler.track()` and `ReactiveHandler.update()`
 - `CircularGetterError`: Type of the error thrown by the base implementation of `MemoHandler.circular()`
-- `Identity`: Class that returns whatever was passed to it
 - `Internal`: A collection of symbols that each represents an internal of an object
 - `staticCall()`: Makes an instance function static
 - `getGetter()`: Gets the eventual getter of a property across the prototype chain
