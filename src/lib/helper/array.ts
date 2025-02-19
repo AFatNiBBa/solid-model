@@ -18,7 +18,7 @@ export class ReactiveArray<T> extends Array<T> {
 	static get [Symbol.species]() { return Array; }
 
 	/** Allows the tracking of the whole array */
-	declare readonly [$TRACK]: void;
+	get [$TRACK]() { return this; }
 
 	/** Forces an update to the {@link length} property by calling {@link ReactiveHandler.update} */
 	update() { return ReactiveArrayHandler.prototype.update<T[]>(this, "length"); }
