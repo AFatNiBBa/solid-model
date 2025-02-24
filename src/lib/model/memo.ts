@@ -1,5 +1,5 @@
 
-import { MemoOptions, Owner, createMemo, onCleanup, runWithOwner } from "solid-js";
+import { MemoOptions, Owner, batch, createMemo, onCleanup, runWithOwner } from "solid-js";
 import { CircularGetterError, getGetter } from "../helper/util";
 import { DisposableHandler } from "./disposable";
 import { Cache } from "../helper/type";
@@ -8,7 +8,8 @@ import { Cache } from "../helper/type";
  * Like {@link DisposableHandler}, but memoizes getters.
  * The eventual getter contained in the {@link PropertyDescriptor} returned by the {@link getOwnPropertyDescriptor} trap will NOT be memoized, because memos are binded and a raw getter may be called by other means.
  * Getters are bound to the reactive object, so they'll be called without memoization if the current receiver is not the reactive proxy.
- * Changes on the raw object are not detected by the memos
+ * Changes on the raw object are not detected by the memos.
+ * Here, {@link batch} is used to wait until the {@link Cache} is updated to fire the notifications
  */
 export class MemoHandler extends DisposableHandler {
 	#cache: Cache<object> = Object.create(null);
@@ -59,10 +60,12 @@ export class MemoHandler extends DisposableHandler {
      * @inheritdoc
      */
 	deleteProperty<T extends object, K extends keyof T>(t: T, k: K) {
-		const own = Object.hasOwn(t, k);
-        if (!super.deleteProperty(t, k)) return false;
-        if (own) delete MemoHandler.getCache(t)[k];
-        return true;
+		const own = Object.hasOwn(t, k); // Only things that are "own" get actually deleted, although the operation returns `true` anyway
+        return batch(() => {
+            if (!super.deleteProperty(t, k)) return false;
+            if (own) delete MemoHandler.getCache(t)[k];
+            return true;
+        });
 	}
     
     /**
@@ -71,11 +74,13 @@ export class MemoHandler extends DisposableHandler {
      * @inheritdoc
      */
     defineProperty<T extends object, K extends keyof T>(t: T, k: K, desc: TypedPropertyDescriptor<T[K]>) {
-        if (!super.defineProperty(t, k, desc)) return false;
-        const cache = MemoHandler.getCache(t);
-        if (desc.get || desc.set) delete cache[k];
-        else cache[k] = null;
-        return true;
+        return batch(() => {
+            if (!super.defineProperty(t, k, desc)) return false;
+            const cache = MemoHandler.getCache(t);
+            if (desc.get || desc.set) delete cache[k];
+            else cache[k] = null;
+            return true;
+        });
 	}
 
     /**
@@ -85,12 +90,14 @@ export class MemoHandler extends DisposableHandler {
      */
 	setPrototypeOf(t: object, proto: object | null, force = false) {
         if (!force && proto === Reflect.getPrototypeOf(t)) return true;
-        const out = super.setPrototypeOf(t, proto, true);
-        const store = MemoHandler.getStore(t), cache = MemoHandler.getCache(t);
-        for (const k of Reflect.ownKeys(store) as (keyof typeof cache)[])
-            if (!Object.hasOwn(t, k))
-                delete cache[k];
-        return out;
+        return batch(() => {
+            const out = super.setPrototypeOf(t, proto, true);
+            const store = MemoHandler.getStore(t), cache = MemoHandler.getCache(t);
+            for (const k of Reflect.ownKeys(store) as (keyof typeof cache)[])
+                if (!Object.hasOwn(t, k))
+                    delete cache[k];
+            return out;
+        });
 	}
 
     /**
