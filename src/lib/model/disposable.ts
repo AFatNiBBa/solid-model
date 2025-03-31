@@ -1,32 +1,21 @@
 
 import { Owner, createRoot, getOwner } from "solid-js";
-import { DisposableOwner } from "../helper/type";
-import { ReactiveHandler } from "./reactive";
+import { MemoHandler } from "./memo";
 
-/** Like {@link ReactiveHandler}, but has an internal general-purpose {@link DisposableOwner} */
-export class DisposableHandler extends ReactiveHandler {
-    #owner: DisposableOwner;
+/** Like {@link MemoHandler}, but creates an {@link Owner} of its own (That needs to be explicitly disposed) instead of using the current one */
+export class DisposableHandler extends MemoHandler {
+    #dispose: () => void;
 
     constructor(target: object, proxy: object) {
-        super(target, proxy);
-        this.#owner = new.target.prototype.owner(target);
+        var owner: Owner;
+        const d = createRoot(d => (owner = getOwner()!, d));
+        super(target, proxy, owner!);
+        this.#dispose = d;
     }
-    
-    /**
-     * Gets the disposable {@link Owner} of a disposable reactive object
-     * @param obj The reactive object
-     */
-    static getOwner(obj: object) { return this.getProxy(obj as DisposableHandler).#owner; }
 
     /**
-     * Creates a {@link DisposableOwner} for the given object
-     * @param _ The object for which to create the {@link DisposableOwner}
+     * Gets the disposer function of an unmanaged memoized object
+     * @param obj The memoized object
      */
-    owner(_: object) {
-        return createRoot(d => {
-            const out = <DisposableOwner>getOwner();
-            out[Symbol.dispose] = d;
-            return out;
-        }, null);
-    }
+    static getDisposer(obj: object) { return this.getProxy(obj as DisposableHandler).#dispose; }
 }

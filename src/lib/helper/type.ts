@@ -1,9 +1,6 @@
 
-import { Accessor, Owner } from "solid-js";
+import { Accessor } from "solid-js";
 import { Internal } from "./util";
-
-/** Type of a directly disposable {@link Owner} */
-export interface DisposableOwner extends Owner, Disposable { }
 
 /** Object that handles a forcing */
 export type Forcer = { count: number, track(): void, update(): void };

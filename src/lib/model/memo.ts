@@ -1,24 +1,36 @@
 
-import { MemoOptions, Owner, batch, createMemo, onCleanup, runWithOwner } from "solid-js";
+import { MemoOptions, Owner, batch, createMemo, getOwner, onCleanup, runWithOwner } from "solid-js";
 import { CircularGetterError, getGetter } from "../helper/util";
-import { DisposableHandler } from "./disposable";
+import { ReactiveHandler } from "./reactive";
 import { Cache } from "../helper/type";
 
 /**
- * Like {@link DisposableHandler}, but memoizes getters.
+ * Like {@link ReactiveHandler}, but memoizes getters.
  * The eventual getter contained in the {@link PropertyDescriptor} returned by the {@link getOwnPropertyDescriptor} trap will NOT be memoized, because memos are binded and a raw getter may be called by other means.
  * Getters are bound to the reactive object, so they'll be called without memoization if the current receiver is not the reactive proxy.
  * Changes on the raw object are not detected by the memos.
  * Here, {@link batch} is used to wait until the {@link Cache} is updated to fire the notifications
  */
-export class MemoHandler extends DisposableHandler {
+export class MemoHandler extends ReactiveHandler {
 	#cache: Cache<object> = Object.create(null);
+    #owner: Owner;
+
+    constructor(target: object, proxy: object, owner = getOwner()!) {
+        super(target, proxy);
+        this.#owner = owner;
+    }
 
     /**
      * Gets the {@link Cache} of a memoized object
      * @param obj The memoized object
      */
     static getCache<T extends object>(obj: T) { return this.getProxy(obj as MemoHandler).#cache as Cache<T>; }
+
+    /**
+     * Gets the {@link Owner} of a memoized object
+     * @param obj The memoized object
+     */
+    static getOwner(obj: object) { return this.getProxy(obj as MemoHandler).#owner; }
 
     /**
      * Deletes the memo of a property and notifies its update, thus forcing the memo to be recreated
