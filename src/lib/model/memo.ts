@@ -7,9 +7,9 @@ import { Cache } from "../helper/type";
 /**
  * Like {@link ReactiveHandler}, but memoizes getters.
  * The eventual getter contained in the {@link PropertyDescriptor} returned by the {@link getOwnPropertyDescriptor} trap will NOT be memoized, because memos are binded and a raw getter may be called by other means.
- * Getters are bound to the reactive object, so they'll be called without memoization if the current receiver is not the reactive proxy.
+ * Getters are bound to the reactive object, so they'll be called without memoization if the current receiver is not the memoized proxy.
  * Changes on the raw object are not detected by the memos.
- * Here, {@link batch} is used to wait until the {@link Cache} is updated to fire the notifications
+ * Here, {@link batch} is used to wait until the {@link Cache} is updated to fire the notifications fired by the base class
  */
 export class MemoHandler extends ReactiveHandler {
 	#cache: Cache<object> = Object.create(null);
@@ -35,7 +35,7 @@ export class MemoHandler extends ReactiveHandler {
     /**
      * Deletes the memo of a property and notifies its update, thus forcing the memo to be recreated
      * @param obj The object containing the property
-     * @param k The key of the property to reset
+     * @param k The key of the property
      * @returns Whether there was something to update
      */
     static reset<T extends object>(obj: T, k: keyof T) {
@@ -53,7 +53,7 @@ export class MemoHandler extends ReactiveHandler {
 		const cache = MemoHandler.getCache(t);
         var f = cache[k];
         
-        if (f === null && r === MemoHandler.getProxy(t)) // If the receiver is not the proxy it means that the current reactive object is the prototype of something else, in this case we can't use the memoized getters since they're bound to the proxy
+        if (f === null || r !== MemoHandler.getProxy(t)) // If the receiver is not the proxy it means that the current memoized object is the prototype of something else, in this case we can't use the memoized getters since they're bound to the proxy
             return super.get(t, k, r);
         
         if (!f) {
@@ -82,14 +82,14 @@ export class MemoHandler extends ReactiveHandler {
     
     /**
      * -
-     * Deletes the {@link k} property from {@link t}'s {@link Cache} IF {@link desc} is an accessor, otherwise it marks the property has not memoizable
+     * Deletes the {@link k} property from {@link t}'s {@link Cache} IF {@link desc} has a getter, otherwise it marks the property has not memoizable
      * @inheritdoc
      */
     defineProperty<T extends object, K extends keyof T>(t: T, k: K, desc: TypedPropertyDescriptor<T[K]>) {
         return batch(() => {
             if (!super.defineProperty(t, k, desc)) return false;
             const cache = MemoHandler.getCache(t);
-            if (desc.get || desc.set) delete cache[k];
+            if (desc.get) delete cache[k];
             else cache[k] = null;
             return true;
         });
@@ -113,11 +113,11 @@ export class MemoHandler extends ReactiveHandler {
 	}
 
     /**
-     * Creates and saves a memo for a property.
+     * Creates a memo for a property and saves it on {@link t}'s {@link Cache}.
      * Ensures that if the memo calls itself, {@link circular} will be used as fallback.
-     * It saves the memo on {@link t}'s {@link Cache} and ensures it gets removed when its {@link Owner} gets disposed
-     * @param t The object for which to create the memo
-     * @param k The key of the property for which to create the memo
+     * It ensures the memo gets removed when its {@link Owner} gets disposed
+     * @param t The object containing the property
+     * @param k The key of the property
      * @param f The original getter of the property
      */
     memoize<T extends object, K extends keyof T>(t: T, k: K, f: (this: T) => T[K]) {

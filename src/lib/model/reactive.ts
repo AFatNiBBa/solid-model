@@ -202,9 +202,9 @@ export class ReactiveHandler extends BaseHandler implements ProxyHandler<object>
 	}
 
 	/**
-     * Obtains a tag for given a property that will be used as a name for its related internals
-     * @param t The object for which to create the tag
-     * @param k The key of the property for which to create the tag
+     * Obtains a tag that will be used as a name for the internals of a property
+     * @param t The object containing the property
+     * @param k The key of the property
      */
     tag<T extends object>(t: T, k: ForceTarget<T>) {
         return `${untrack(() => t.constructor)?.name}.${k.toString()}`;
