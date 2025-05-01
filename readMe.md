@@ -43,14 +43,10 @@ Handler that makes an `Atom` under the hood for each field of its target
 #### `MemoHandler`
 Handler that inherits the behaviours of `ReactiveHandler` and memoizes every getter of its target
 - `getCache()` (static): Gets the object (Of type `Cache`) that contains the memos of the cached getters
-- `getOwner()` (static): Gets the `Owner` that handles the reactive resources of the current object
-- `reset()` (static): Deletes the memo of a property and notifies its update, thus forcing the memo to be recreated
+- `resetMemo()` (static): Deletes the memo of a property and notifies its update, thus forcing the memo to be recreated
+- `ensureMemo()` (static): Ensures that a property gets memoized
 - `memoize()`: Creates and saves a memo for a property
 - `circular()`: Provides a fallback value for when a getter calls itself while being memoized
-
-#### `DisposableHandler`
-Handler that inherits the behaviours of `MemoHandler` but makes an `Owner` for each object instead of using the current one
-- `getDisposer()` (static): Gets the disposer function of the current unmanaged memoized object
 
 #### `ReactiveArrayHandler`
 Handler that makes `ReactiveArray`s work with **"solid-js"**
@@ -66,6 +62,7 @@ The module also exposes some of its internal utilities
 - `Internal`: A collection of symbols that each represents an internal of an object
 - `staticCall()`: Makes an instance function static
 - `getGetter()`: Gets the eventual getter of a property across the prototype chain
+- `createUnownedMemo()`: Like `createMemo()` but doesn't need an `Owner`
 
 #### `ReactiveArray`
 Reactive version of the `Array`

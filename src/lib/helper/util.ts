@@ -1,4 +1,6 @@
 
+import { Accessor, MemoOptions, getOwner, createRoot, createMemo, onCleanup, Owner } from "solid-js";
+
 /** Type of the error thrown when a getter calls itself while being memoized */
 export class CircularGetterError extends Error { }
 
@@ -30,3 +32,21 @@ export const staticCall = <T, Args extends readonly unknown[], R>(f: (this: T, .
  * @param k Key of the property that may have a getter
  */
 export const getGetter = staticCall((<any>Object.prototype).__lookupGetter__ as <T, K extends keyof T>(this: T, k: K) => { (): T[K] } | undefined);
+
+/**
+ * Like {@link createMemo}, but doesn't need an {@link Owner}.
+ * The memo is disposed without the need of an {@link Owner} by delegating its disposal to the {@link Owner}s that read it.
+ * The memoization happens only if the result has been read from at least one {@link Owner} that is currently active
+ * @param f The function to memoize
+ * @param opts The options to pass down to {@link createMemo}
+ */
+export function createUnownedMemo<T>(f: Accessor<T>, opts?: MemoOptions<T>): Accessor<T> {
+    var count = 0, memo: Accessor<T> | undefined, disp: (() => void) | undefined;
+    return () => {
+        if (!getOwner()) return (memo ? memo : f)();
+        memo ??= createRoot(d => (disp = d, createMemo(f, undefined, opts)));
+        count++;
+        onCleanup(() => --count || (disp!(), memo = disp = undefined));
+        return memo();
+    };
+}

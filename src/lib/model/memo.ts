@@ -1,11 +1,12 @@
 
-import { MemoOptions, Owner, batch, createMemo, getOwner, onCleanup, runWithOwner } from "solid-js";
-import { CircularGetterError, getGetter } from "../helper/util";
+import { CircularGetterError, createUnownedMemo, getGetter } from "../helper/util";
+import { MemoOptions, batch, createRenderEffect } from "solid-js";
 import { ReactiveHandler } from "./reactive";
 import { Cache } from "../helper/type";
 
 /**
  * Like {@link ReactiveHandler}, but memoizes getters.
+ * To avoid having to manually dispose the memoized proxy, each memo is created with {@link createUnownedMemo}.
  * The eventual getter contained in the {@link PropertyDescriptor} returned by the {@link getOwnPropertyDescriptor} trap will NOT be memoized, because memos are binded and a raw getter may be called by other means.
  * Getters are bound to the reactive object, so they'll be called without memoization if the current receiver is not the memoized proxy.
  * Changes on the raw object are not detected by the memos.
@@ -13,12 +14,6 @@ import { Cache } from "../helper/type";
  */
 export class MemoHandler extends ReactiveHandler {
 	#cache: Cache<object> = Object.create(null);
-    #owner: Owner;
-
-    constructor(target: object, proxy: object, owner = getOwner()!) {
-        super(target, proxy);
-        this.#owner = owner;
-    }
 
     /**
      * Gets the {@link Cache} of a memoized object
@@ -27,20 +22,29 @@ export class MemoHandler extends ReactiveHandler {
     static getCache<T extends object>(obj: T) { return this.getProxy(obj as MemoHandler).#cache as Cache<T>; }
 
     /**
-     * Gets the {@link Owner} of a memoized object
-     * @param obj The memoized object
-     */
-    static getOwner(obj: object) { return this.getProxy(obj as MemoHandler).#owner; }
-
-    /**
      * Deletes the memo of a property and notifies its update, thus forcing the memo to be recreated
      * @param obj The object containing the property
      * @param k The key of the property
      * @returns Whether there was something to update
      */
-    static reset<T extends object>(obj: T, k: keyof T) {
+    static resetMemo<T extends object>(obj: T, k: keyof T) {
         delete this.getCache(obj)[k];
         return this.prototype.update(obj, k);
+    }
+
+    /**
+     * Reads a property under a reactive context to ensure that it gets memoized.
+     * An effect is created to ensure that, if the memo of a property is changed, it will be read again
+     * @param obj The object containing the property
+     * @param k The key of the property
+     */
+    static ensureMemo<T extends object, K extends keyof T>(obj: T, k: K) {
+        createRenderEffect<Cache<T>[K]>(last => {
+            this.prototype.track(obj, k);
+            const memo = this.getCache(obj)[k];
+            if (memo && memo !== last) memo();
+            return memo;
+        });
     }
     
     /**
@@ -114,22 +118,17 @@ export class MemoHandler extends ReactiveHandler {
 
     /**
      * Creates a memo for a property and saves it on {@link t}'s {@link Cache}.
-     * Ensures that if the memo calls itself, {@link circular} will be used as fallback.
-     * It ensures the memo gets removed when its {@link Owner} gets disposed
+     * Ensures that if the memo calls itself, {@link circular} will be used as fallback
      * @param t The object containing the property
      * @param k The key of the property
      * @param f The original getter of the property
      */
     memoize<T extends object, K extends keyof T>(t: T, k: K, f: (this: T) => T[K]) {
         const proxy = MemoHandler.getProxy(t);
-        const owner = MemoHandler.getOwner(t);
         const cache = MemoHandler.getCache(t);
         const config: MemoOptions<T[K]> = { name: this.tag(t, k), equals: (a, b) => this.compare(t, k, a, b) };
         cache[k] = () => this.circular(t, k, f);
-        return cache[k] = runWithOwner(owner, () => {
-            onCleanup(() => delete cache[k]);
-            return createMemo(f.bind(proxy), undefined, config)
-        })!;
+        return cache[k] = createUnownedMemo(f.bind(proxy), config);
     }
 
     /**
