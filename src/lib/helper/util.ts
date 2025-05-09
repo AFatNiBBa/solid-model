@@ -39,14 +39,23 @@ export const getGetter = staticCall((<any>Object.prototype).__lookupGetter__ as 
  * The memoization happens only if the result has been read from at least one {@link Owner} that is currently active
  * @param f The function to memoize
  * @param opts The options to pass down to {@link createMemo}
+ * @param fallback The function to call if the memo is being read by itself
  */
-export function createUnownedMemo<T>(f: Accessor<T>, opts?: MemoOptions<T>): Accessor<T> {
-    var count = 0, memo: Accessor<T> | undefined, disp: (() => void) | undefined;
+export function createUnownedMemo<T>(f: Accessor<T>, opts?: MemoOptions<T>, fallback?: Accessor<T>): Accessor<T> {
+    var count = 0, running = false, memo: Accessor<T> | undefined, disp: (() => void) | undefined;
     return () => {
-        if (!getOwner()) return (memo ? memo : f)();
-        memo ??= createRoot(d => (disp = d, createMemo(f, undefined, opts)));
-        count++;
-        onCleanup(() => --count || (disp!(), memo = disp = undefined));
-        return memo();
+        if (running) 
+            if (fallback) return fallback();
+            else throw new CircularGetterError("The memo is being read by itself");
+        running = true;
+        try
+        {
+            if (!getOwner()) return (memo ? memo : f)();
+            memo ??= createRoot(d => (disp = d, createMemo(f, undefined, opts)));
+            count++;
+            onCleanup(() => --count || (disp!(), memo = disp = undefined));
+            return memo();
+        }
+        finally { running = false; }
     };
 }

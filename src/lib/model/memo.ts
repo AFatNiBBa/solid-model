@@ -127,8 +127,7 @@ export class MemoHandler extends ReactiveHandler {
         const proxy = MemoHandler.getProxy(t);
         const cache = MemoHandler.getCache(t);
         const config: MemoOptions<T[K]> = { name: this.tag(t, k), equals: (a, b) => this.compare(t, k, a, b) };
-        cache[k] = () => this.circular(t, k, f);
-        return cache[k] = createUnownedMemo(f.bind(proxy), config);
+        return cache[k] = createUnownedMemo(f.bind(proxy), config, () => this.circular(t, k, f));
     }
 
     /**
