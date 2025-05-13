@@ -1,6 +1,6 @@
 
 import { CircularGetterError, createUnownedMemo, getGetter } from "../helper/util";
-import { MemoOptions, batch, createRenderEffect } from "solid-js";
+import { MemoOptions, batch, createRenderEffect, mapArray } from "solid-js";
 import { ReactiveHandler } from "./reactive";
 import { Cache } from "../helper/type";
 
@@ -33,18 +33,13 @@ export class MemoHandler extends ReactiveHandler {
     }
 
     /**
-     * Reads a property under a reactive context to ensure that it gets memoized.
-     * An effect is created to ensure that, if the memo of a property is changed, it will be read again
-     * @param obj The object containing the property
-     * @param k The key of the property
+     * Reads every property of a memoized object under a reactive context to ensure that it gets memoized
+     * @param obj The memoized object
      */
-    static ensureMemo<T extends object, K extends keyof T>(obj: T, k: K) {
-        createRenderEffect<Cache<T>[K]>(last => {
-            this.prototype.track(obj, k);
-            const memo = this.getCache(obj)[k];
-            if (memo && memo !== last) memo();
-            return memo;
-        });
+    static ensureMemo<T extends object>(obj: T) {
+        createRenderEffect(mapArray(() => Reflect.ownKeys(obj) as (keyof T)[], k => {
+            createRenderEffect(() => obj[k]); // This needs to be tracked because the memoized function could change
+        }));
     }
     
     /**
