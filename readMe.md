@@ -44,7 +44,7 @@ Handler that makes an `Atom` under the hood for each field of its target
 Handler that inherits the behaviours of `ReactiveHandler` and memoizes every getter of its target
 - `getCache()` (static): Gets the object (Of type `Cache`) that contains the memos of the cached getters
 - `resetMemo()` (static): Deletes the memo of a property and notifies its update, thus forcing the memo to be recreated
-- `ensureMemo()` (static): Ensures that a property gets memoized
+- `ensureMemo()` (static): Ensures that every property gets memoized
 - `memoize()`: Creates and saves a memo for a property
 
 #### `ReactiveArrayHandler`
