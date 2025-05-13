@@ -1,12 +1,12 @@
 
-import { CircularGetterError, createUnownedMemo, getGetter } from "../helper/util";
 import { MemoOptions, batch, createRenderEffect } from "solid-js";
+import { createUnownedMemo, getGetter } from "../helper/util";
 import { ReactiveHandler } from "./reactive";
 import { Cache } from "../helper/type";
 
 /**
  * Like {@link ReactiveHandler}, but memoizes getters.
- * To avoid having to manually dispose the memoized proxy, each memo is created with {@link createUnownedMemo}.
+ * To avoid having to manually dispose the memoized proxy, each memo is created through {@link createUnownedMemo}.
  * The eventual getter contained in the {@link PropertyDescriptor} returned by the {@link getOwnPropertyDescriptor} trap will NOT be memoized, because memos are binded and a raw getter may be called by other means.
  * Getters are bound to the reactive object, so they'll be called without memoization if the current receiver is not the memoized proxy.
  * Changes on the raw object are not detected by the memos.
@@ -118,7 +118,7 @@ export class MemoHandler extends ReactiveHandler {
 
     /**
      * Creates a memo for a property and saves it on {@link t}'s {@link Cache}.
-     * Ensures that if the memo calls itself, {@link circular} will be used as fallback
+     * The memo is created through {@link createUnownedMemo}
      * @param t The object containing the property
      * @param k The key of the property
      * @param f The original getter of the property
@@ -127,16 +127,6 @@ export class MemoHandler extends ReactiveHandler {
         const proxy = MemoHandler.getProxy(t);
         const cache = MemoHandler.getCache(t);
         const config: MemoOptions<T[K]> = { name: this.tag(t, k), equals: (a, b) => this.compare(t, k, a, b) };
-        return cache[k] = createUnownedMemo(f.bind(proxy), config, () => this.circular(t, k, f));
-    }
-
-    /**
-     * Provides a fallback value for when a getter calls itself while being memoized
-     * @param t The object containing the getter
-     * @param k The property containing the getter
-     * @param _f The original getter of the property
-     */
-    circular<T extends object, K extends keyof T>(t: T, k: K, _f: (this: T) => T[K]): T[K] {
-        throw new CircularGetterError(`The ${JSON.stringify(this.tag(t, k))} getter called itself while being memoized`);
+        return cache[k] = createUnownedMemo(f.bind(proxy), config);
     }
 }
