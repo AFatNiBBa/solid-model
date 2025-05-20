@@ -1,6 +1,6 @@
 
-import { CircularMemoError, createUnownedMemo, getGetter } from "../helper/util";
 import { MemoOptions, batch, createRenderEffect, mapArray } from "solid-js";
+import { createUnownedMemo, getGetter } from "../helper/util";
 import { ReactiveHandler } from "./reactive";
 import { Cache } from "../helper/type";
 

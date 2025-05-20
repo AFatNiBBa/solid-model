@@ -131,7 +131,7 @@ export class ReactiveArrayHandler extends ReactiveHandler {
 	/**
 	 * -
 	 * Every time an index or {@link Array.length} is updated, it updates {@link $TRACK} too.
-	 * Normal {@link Array}s in JavaScript are exotic objects, which means that they're different from regular objects even on the engine level, this is why "solid-js" relies on {@link $TRACK} to make them work.
+	 * Normal {@link Array}s in JavaScript are exotic objects, which means that they're different from regular objects even on the engine level, this is why **"solid-js"** relies on {@link $TRACK} to make them work.
 	 * For example, when methods with side effects change {@link Array.length}, they don't trigger the {@link ProxyHandler.set} trap.
 	 * Making a normal object with an {@link Array} prototype would fix most of the problems, but things like {@link For} wouldn't work because, due to these problems, they now rely EXCLUSIVELY on {@link $TRACK}
 	 * @inheritdoc

@@ -37,23 +37,24 @@ export const getGetter = staticCall((<any>Object.prototype).__lookupGetter__ as 
  * Like {@link createMemo}, but doesn't need an {@link Owner}.
  * The memo is disposed without the need of an {@link Owner} by delegating its disposal to the {@link Owner}s that read it.
  * The memoization happens only if the result has been read from at least one {@link Owner} that is currently active.
- * The resulting {@link Accessor} throws a {@link CircularMemoError} if the memo is read by itself
+ * The resulting {@link Accessor} throws a {@link CircularMemoError} if it's read by itself while it's being memoized, this is to avoid creating the memo when it's already being created.
+ * It doesn't throw if you simply read the result when the memo already exists or it's not needed, this is because **"solid-js"** will sometimes call the {@link Accessor} from whithin itself when it's already memoized (In this cases it will observe that the memo does't need to be updated thus not executing its contents).
+ * For more informations, check [this](https://github.com/solidjs/solid/discussions/2489) discussion
  * @param f The function to memoize
  * @param opts The options to pass down to {@link createMemo}
  */
 export function createUnownedMemo<T>(f: Accessor<T>, opts?: MemoOptions<T>): Accessor<T> {
-    var count = 0, running = false, memo: Accessor<T> | undefined, disp: (() => void) | undefined;
+    var count = 0, disp: (() => void) | undefined, memo: Accessor<T> | undefined | null;
     return () => {
-        if (running) throw new CircularMemoError("The memo is being read by itself");
-        running = true;
-        try
-        {
-            if (!getOwner()) return (memo ? memo : f)();
-            memo ??= createRoot(d => (disp = d, createMemo(f, undefined, opts)));
-            count++;
-            onCleanup(() => --count || (disp!(), memo = disp = undefined));
-            return memo();
+        if (memo === null) throw new CircularMemoError("The memo is being read by itself while it's being memoized");
+        if (!getOwner()) return (memo ? memo : f)();
+        if (!memo) {
+            memo = null;
+            try { [ disp, memo ] = createRoot(d => [ d, createMemo(f, undefined, opts) ]); }
+            catch (err) { throw memo = undefined, err; }
         }
-        finally { running = false; }
+        count++;
+        onCleanup(() => --count || (disp!(), memo = disp = undefined));
+        return memo();
     };
 }
