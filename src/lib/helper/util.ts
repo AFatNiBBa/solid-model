@@ -45,7 +45,7 @@ export function createUnownedMemo<T>(f: Accessor<T>, opts?: MemoOptions<T>): Acc
     var count = 0, disp: (() => void) | undefined, memo: Accessor<T> | undefined;
     return () => {
         if (!getOwner()) return (memo ? memo : f)();
-        if (!memo) batch(() => [ disp, memo ] = createRoot(d => [ d, createMemo(f, undefined, opts) ])); // Defers the execution AT LEAST until after the cache has been set (It will be deferred longer if there's another batch outside of the function)
+        if (!memo) batch(() => [ disp, memo ] = createRoot(d => [ d, createBatchableMemo(f, undefined, opts) ])); // Defers the execution AT LEAST until after the cache has been set (It will be deferred longer if there's another batch outside of the function)
         count++;
         onCleanup(() => --count || (disp!(), memo = disp = undefined));
         return memo!();
