@@ -61,7 +61,6 @@ The module also exposes some of its internal utilities
 - `staticCall()`: Makes an instance function static
 - `getGetter()`: Gets the eventual getter of a property across the prototype chain
 - `createUnownedMemo()`: Like `createMemo()` but doesn't need an `Owner`
-- `createBatchableMemo()`: Like `createMemo()` but allows the user to defer even the first execution by using `batch()`.
 
 #### `ReactiveArray`
 Reactive version of the `Array`
