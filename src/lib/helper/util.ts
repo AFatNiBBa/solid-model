@@ -36,7 +36,8 @@ export const getGetter = staticCall((<any>Object.prototype).__lookupGetter__ as 
  * The memoization happens only if the result has been read from at least one {@link Owner} that is currently active.
  * If the unowned memo is read by itself during the internal native memo creation, the latter will NOT be created more than once by calling {@link f} directly.
  * It is actualy likely that memos read themselves, this is due to the complicated algorithms that **"solid-js"** uses to ensure each memo has the correct value, for more informations, check [this](https://github.com/solidjs/solid/discussions/2489) discussion.
- * These algorithms are also the reason why I couldn't simply throw when the memo is read by itself, it's not always wrong when that happens
+ * These algorithms are also the reason why I couldn't simply throw when the memo is read by itself, it's not always wrong when that happens.
+ * If the memo actually reads itself AFTER the memoization, it will fallback to the default behaviour: It will succeed if all the iterations converge to the same value and it will throw otherwise
  * @param f The function to memoize
  * @param opts The options to pass down to {@link createMemo}
  */
