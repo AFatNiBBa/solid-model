@@ -35,9 +35,13 @@ export const getGetter = staticCall((<any>Object.prototype).__lookupGetter__ as 
  * The memo is disposed without the need of an {@link Owner} by delegating its disposal to the {@link Owner}s that read it.
  * The memoization happens only if the result has been read from at least one {@link Owner} that is currently active.
  * If the unowned memo is read by itself during the internal native memo creation, the latter will NOT be created more than once by calling {@link f} directly.
- * It is actualy likely that memos read themselves, this is due to the complicated algorithms that **"solid-js"** uses to ensure each memo has the correct value, for more informations, check [this](https://github.com/solidjs/solid/discussions/2489) discussion.
- * These algorithms are also the reason why I couldn't simply throw when the memo is read by itself, it's not always wrong when that happens.
- * If the memo actually reads itself AFTER the memoization, it will fallback to the default behaviour: It will succeed if all the iterations converge to the same value and it will throw otherwise
+ * If the memo actually reads itself AFTER the memoization, it will fallback to the default behaviour: It will succeed if all the iterations converge to the same value and it will throw otherwise.
+ * Since the internal native memo can only be created during reads, it's likely unrelated to the {@link Owner} hierarchy that created it, so I'm making sure it doesn't keep any reference to the latter.
+ * If the internal native memo had retained a reference to the calling hierarchy, it could have triggered [this](https://github.com/solidjs/solid/blob/90ba0286b0dbc7802113bf5874687c9032d66969/packages/solid/src/reactive/signal.ts#L1511) part of the complicated algorithm that **"solid-js"** uses to ensure each memo has the correct value.
+ * The purpose of that part of the algorithm is likely to prevent child memos from updating unnecessarily when their parent ones would have been updated anyway shortly after (Thus disposing their children).
+ * Since the unowned memo is logically disconnected from the calling hierarchy, there's no reason for that part of the algorithm to run in our case.
+ * If I allowed that part of the algorithm to run anyway, it would have made it likely for memos to read themselves (For more informations check [this](https://github.com/solidjs/solid/discussions/2489) discussion), which is why I initially couldn't just throw an error when the memo is read by itself, since it wasn't always wrong when that happened.
+ * Since the only reason I care at all about the circular reads is just to prevent messing up the caching of the internal native memo, I decided not to re-introduce the error even if I could safely throw it as of now
  * @param f The function to memoize
  * @param opts The options to pass down to {@link createMemo}
  */
@@ -48,7 +52,7 @@ export function createUnownedMemo<T>(f: Accessor<T>, opts?: MemoOptions<T>): Acc
         if (!getOwner()) return (memo ? memo : f)();
         if (!memo) {
             memo = null;
-            try { [ disp, memo ] = createRoot(d => [ d, createMemo(f, undefined, opts) ]); }
+            try { [ disp, memo ] = createRoot(d => [ d, createMemo(f, undefined, opts) ], null); }
             catch (err) { throw memo = undefined, err; }
         }
         count++;
