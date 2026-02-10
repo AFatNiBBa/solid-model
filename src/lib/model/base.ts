@@ -1,8 +1,8 @@
 
-import { IDENTITY } from "solid-atom";
+import { IDENTITY } from "../helper/identity";
 
 /** Class that defines the private properties that will be put inside the targets directly */
-class TargetHandler extends IDENTITY {
+class TargetHandler extends IDENTITY<object> {
     #proxy?: object;
 
     constructor(target: object, proxy?: object) {

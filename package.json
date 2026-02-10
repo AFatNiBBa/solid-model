@@ -1,6 +1,6 @@
 {
   "name": "solid-model",
-  "version": "7.0.2",
+  "version": "8.0.0",
   "description": "Automatic view model for solid-js",
   "author": "AFatNiBBa",
   "license": "ISC",
@@ -16,7 +16,6 @@
   },
   "devDependencies": {
     "@types/node": "^20.6.0",
-    "solid-atom": "^1.0.2",
     "vite": "^4.4.9",
     "vite-plugin-dts": "^4.5.0"
   },

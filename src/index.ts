@@ -1,6 +1,6 @@
 
-export { IDENTITY } from "solid-atom";
 export * from "./lib/helper/array";
+export * from "./lib/helper/identity";
 export * from "./lib/helper/type";
 export * from "./lib/helper/util";
 export { BaseHandler } from "./lib/model/base";

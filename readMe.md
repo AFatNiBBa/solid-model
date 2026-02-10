@@ -52,7 +52,7 @@ Handler that makes `ReactiveArray`s work with **"solid-js"**
 
 ### Utility
 The module also exposes some of its internal utilities
-- `IDENTITY`: Embedded from **"solid-atom"**
+- `IDENTITY`: Function that returns passed value and can be used as a class
 - `Forcer`: Object that allows `ReactiveHandler` to make properties reactive
 - `Store`: The type of the output of `ReactiveHandler.getStore()`
 - `Cache`: The type of the output of `MemoHandler.getCache()`
