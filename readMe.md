@@ -52,7 +52,6 @@ Handler that makes `ReactiveArray`s work with **"solid-js"**
 
 ### Utility
 The module also exposes some of its internal utilities
-- `IDENTITY`: Function that returns passed value and can be used as a class
 - `Forcer`: Object that allows `ReactiveHandler` to make properties reactive
 - `Store`: The type of the output of `ReactiveHandler.getStore()`
 - `Cache`: The type of the output of `MemoHandler.getCache()`
@@ -61,6 +60,7 @@ The module also exposes some of its internal utilities
 - `staticCall()`: Makes an instance function static
 - `getGetter()`: Gets the eventual getter of a property across the prototype chain
 - `createUnownedMemo()`: Like `createMemo()` but doesn't need an `Owner`
+- `IDENTITY`: Function that returns passed value and can be used as a class (Through `IDENTITY.Class`)
 
 #### `ReactiveArray`
 Reactive version of the `Array`
