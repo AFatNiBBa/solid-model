@@ -56,9 +56,9 @@ export class ReactiveHandler extends BaseHandler implements ProxyHandler<object>
 	deleteProperty<T extends object, K extends keyof T>(t: T, k: K) {
 		const own = Object.hasOwn(t, k);
 		if (!Reflect.deleteProperty(t, k)) return false;
-		if (!own) return true;							// The delete operation returns `true` even when the property is not defined directly (Case in which it doesn't do anything)
+		if (!own) return true; // The delete operation returns `true` even when the property is not defined directly (Case in which it doesn't do anything)
 		return batch(() => {
-			const store = ReactiveHandler.getStore(t);	// You can NOT get the store safely from `r` because private fields are not inherited in the prototype chain (And `r` could be something else other than the proxy)
+			const store = ReactiveHandler.getStore(t);
 			this.update(t, k, store);
 			this.update(t, Internal.SHAPE, store);
 			return true;

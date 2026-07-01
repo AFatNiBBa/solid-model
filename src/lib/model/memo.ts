@@ -49,10 +49,10 @@ export class MemoHandler extends ReactiveHandler {
      * @inheritdoc
      */
     get<T extends object, K extends keyof T>(t: T, k: K, r: T) {
-		const cache = MemoHandler.getCache(t);
+		const cache = MemoHandler.getCache(t);              // You can NOT get the cache safely from `r` because private fields are not inherited in the prototype chain (And `r` could be something else other than the proxy)
         var f = cache[k];
         
-        if (f === null || r !== MemoHandler.getProxy(t)) // If the receiver is not the proxy it means that the current memoized object is the prototype of something else, in this case we can't use the memoized getters since they're bound to the proxy
+        if (f === null || r !== MemoHandler.getProxy(t))    // If the receiver is not the proxy it means that the current memoized object is the prototype of something else, in this case we can't use the memoized getters since they're bound to the proxy
             return super.get(t, k, r);
         
         if (!f) {
