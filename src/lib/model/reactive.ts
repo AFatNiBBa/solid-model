@@ -1,5 +1,5 @@
 
-import { batch, createSignal, equalFn, getListener, onCleanup, untrack } from "solid-js";
+import { createSignal, getObserver, getOwner, isEqual, onCleanup, runWithOwner, untrack } from "solid-js";
 import { Forcer, ForceTarget, Store } from "../helper/type";
 import { Internal } from "../helper/util";
 import { BaseHandler } from "./base";
@@ -57,12 +57,10 @@ export class ReactiveHandler extends BaseHandler implements ProxyHandler<object>
 		const own = Object.hasOwn(t, k);
 		if (!Reflect.deleteProperty(t, k)) return false;
 		if (!own) return true; // The delete operation returns `true` even when the property is not defined directly (Case in which it doesn't do anything)
-		return batch(() => {
-			const store = ReactiveHandler.getStore(t);
-			this.update(t, k, store);
-			this.update(t, Internal.SHAPE, store);
-			return true;
-		});
+		const store = ReactiveHandler.getStore(t);
+		this.update(t, k, store);
+		this.update(t, Internal.SHAPE, store);
+		return true;
 	}
 
     /**
@@ -74,13 +72,11 @@ export class ReactiveHandler extends BaseHandler implements ProxyHandler<object>
 	defineProperty<T extends object, K extends keyof T>(t: T, k: K, desc: TypedPropertyDescriptor<T[K]>) {
 		const prev = Reflect.getOwnPropertyDescriptor(t, k);
 		if (!Reflect.defineProperty(t, k, desc)) return false;
-		return batch(() => {
-			const store = ReactiveHandler.getStore(t);
-			if (!prev) this.update(t, Internal.SHAPE, store);
-			else if (compareDesc(this, t, k, desc, prev as TypedPropertyDescriptor<T[K]>)) return true;
-			this.update(t, k, store);
-			return true;
-		});
+		const store = ReactiveHandler.getStore(t);
+		if (!prev) this.update(t, Internal.SHAPE, store);
+		else if (compareDesc(this, t, k, desc, prev as TypedPropertyDescriptor<T[K]>)) return true;
+		this.update(t, k, store);
+		return true;
 	}
 
     /**
@@ -125,14 +121,12 @@ export class ReactiveHandler extends BaseHandler implements ProxyHandler<object>
 	setPrototypeOf(t: object, proto: object | null, force = false) {
 		if (!force && proto === Reflect.getPrototypeOf(t)) return true;
 		const out = Reflect.setPrototypeOf(t, proto);
-		batch(() => {
-			const store = ReactiveHandler.getStore(t);
-			this.update(t, Internal.PROTO, store);
-			this.update(t, Internal.SHAPE, store);
-			for (const k of Reflect.ownKeys(store) as (keyof typeof store)[])
-				if (!Object.hasOwn(t, k))
-					this.update(t, k, store);
-		});
+		const store = ReactiveHandler.getStore(t);
+		this.update(t, Internal.PROTO, store);
+		this.update(t, Internal.SHAPE, store);
+		for (const k of Reflect.ownKeys(store) as (keyof typeof store)[])
+			if (!Object.hasOwn(t, k))
+				this.update(t, k, store);
 		return out;
 	}
 
@@ -166,7 +160,7 @@ export class ReactiveHandler extends BaseHandler implements ProxyHandler<object>
 	 * @returns Whether there was something to track
 	 */
 	track<T extends object>(t: T, k: ForceTarget<T>, store = ReactiveHandler.getStore(t)) {
-		if (!getListener()) return false;
+		if (!getObserver() || !getOwner()) return false; // When you're within a "latest()", you might have a special (Invalid) listener and no owner
 		const temp = store[k];
 		if (temp === null) return false;
 		const forcer = temp ?? (store[k] = createForcer(this.tag(t, k)));
@@ -198,7 +192,7 @@ export class ReactiveHandler extends BaseHandler implements ProxyHandler<object>
      * @param prev The old value
      */
 	compare<T extends object, K extends keyof T>(_t: T, _k: K, next: T[K], prev: T[K]) {
-		return equalFn(next, prev);
+		return isEqual(next, prev);
 	}
 
 	/**
@@ -217,7 +211,7 @@ export class ReactiveHandler extends BaseHandler implements ProxyHandler<object>
  * @returns An object which is both a {@link Forcer} and its own {@link Forcer.track} method
  */
 function createForcer(name?: string): Forcer {
-	const [ track, update ] = createSignal(undefined, { name, equals: false, internal: true });
+	const [ track, update ] = runWithOwner(null, () => createSignal(undefined, { name, equals: false }));
 	const out = track as unknown as Forcer;
 	out.count = 0;
 	out.track = track;
@@ -226,7 +220,8 @@ function createForcer(name?: string): Forcer {
 }
 
 /**
- * Compares two property descriptors
+ * Compares two property descriptors.
+ * TODO: https://github.com/vitejs/vite/issues/23008
  * @param handler The {@link ReactiveHandler} that will provide the {@link ReactiveHandler.compare} method if needed
  * @param t The object containing the property defined by the descriptors
  * @param k The key of the property defined by the descriptors
@@ -236,7 +231,7 @@ function createForcer(name?: string): Forcer {
 function compareDesc<T extends object, K extends keyof T>(handler: ReactiveHandler, t: T, k: K, next: TypedPropertyDescriptor<T[K]>, prev: TypedPropertyDescriptor<T[K]>) {
 	type temp = keyof typeof next;
 	for (const elm in next)
-		if (elm === "value" satisfies temp ? !handler.compare(t, k, next.value!, prev.value!) : next[elm as temp] !== prev[elm as temp])
+		if (elm === ("value" satisfies temp) ? !handler.compare(t, k, next.value!, prev.value!) : next[elm as temp] !== prev[elm as temp])
 			return false;
 	return true;
 }

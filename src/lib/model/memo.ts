@@ -1,5 +1,5 @@
 
-import { MemoOptions, batch, createRenderEffect, mapArray } from "solid-js";
+import { MemoOptions, createRenderEffect, flush, latest, mapArray } from "solid-js";
 import { createUnownedMemo, getGetter } from "../helper/util";
 import { ReactiveHandler } from "./reactive";
 import { Cache } from "../helper/type";
@@ -38,8 +38,8 @@ export class MemoHandler extends ReactiveHandler {
      */
     static ensureMemo<T extends object>(obj: T) {
         createRenderEffect(mapArray(() => Reflect.ownKeys(obj) as (keyof T)[], k => {
-            createRenderEffect(() => obj[k]); // This needs to be tracked because the memoized function could be replaced
-        }));
+            createRenderEffect(() => obj[k], () => { }); // This needs to be tracked because the memoized function could be replaced
+        }), () => { });
     }
     
     /**
@@ -62,7 +62,7 @@ export class MemoHandler extends ReactiveHandler {
         }
 
         this.track(t, k);
-        return f();
+        return latest(f);
 	}
 
     /**
@@ -72,11 +72,9 @@ export class MemoHandler extends ReactiveHandler {
      */
 	deleteProperty<T extends object, K extends keyof T>(t: T, k: K) {
 		const own = Object.hasOwn(t, k); // Only things that are "own" get actually deleted, although the operation returns `true` anyway
-        return batch(() => {
-            if (!super.deleteProperty(t, k)) return false;
-            if (own) delete MemoHandler.getCache(t)[k];
-            return true;
-        });
+        if (!super.deleteProperty(t, k)) return false;
+        if (own) delete MemoHandler.getCache(t)[k];
+        return true;
 	}
     
     /**
@@ -85,13 +83,11 @@ export class MemoHandler extends ReactiveHandler {
      * @inheritdoc
      */
     defineProperty<T extends object, K extends keyof T>(t: T, k: K, desc: TypedPropertyDescriptor<T[K]>) {
-        return batch(() => {
-            if (!super.defineProperty(t, k, desc)) return false;
-            const cache = MemoHandler.getCache(t);
-            if (desc.get) delete cache[k];
-            else cache[k] = null;
-            return true;
-        });
+        if (!super.defineProperty(t, k, desc)) return false;
+        const cache = MemoHandler.getCache(t);
+        if (desc.get) delete cache[k];
+        else cache[k] = null;
+        return true;
 	}
 
     /**
@@ -101,14 +97,12 @@ export class MemoHandler extends ReactiveHandler {
      */
 	setPrototypeOf(t: object, proto: object | null, force = false) {
         if (!force && proto === Reflect.getPrototypeOf(t)) return true;
-        return batch(() => {
-            const out = super.setPrototypeOf(t, proto, true);
-            const store = MemoHandler.getStore(t), cache = MemoHandler.getCache(t);
-            for (const k of Reflect.ownKeys(store) as (keyof typeof cache)[])
-                if (!Object.hasOwn(t, k))
-                    delete cache[k];
-            return out;
-        });
+        const out = super.setPrototypeOf(t, proto, true);
+        const store = MemoHandler.getStore(t), cache = MemoHandler.getCache(t);
+        for (const k of Reflect.ownKeys(store) as (keyof typeof cache)[])
+            if (!Object.hasOwn(t, k))
+                delete cache[k];
+        return out;
 	}
 
     /**

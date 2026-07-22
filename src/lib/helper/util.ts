@@ -1,5 +1,5 @@
 
-import { Accessor, MemoOptions, getOwner, createRoot, createMemo, onCleanup, Owner } from "solid-js";
+import { Accessor, MemoOptions, getOwner, createRoot, createMemo, onCleanup, Owner, runWithOwner } from "solid-js";
 
 /**
  * A collection of symbols that each represents an internal of an object.
@@ -52,7 +52,7 @@ export function createUnownedMemo<T>(f: Accessor<T>, opts?: MemoOptions<T>): Acc
         if (!getOwner()) return (memo ? memo : f)();
         if (!memo) {
             memo = null;
-            try { [ disp, memo ] = createRoot(d => [ d, createMemo(f, undefined, opts) ], null); }
+            try { [ disp, memo ] = runWithOwner(null, () => createRoot(d => [ d, createMemo(f, opts as any) as Accessor<T> ])); }
             catch (err) { throw memo = undefined, err; }
         }
         count++;

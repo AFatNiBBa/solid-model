@@ -1,21 +1,25 @@
 
-import dtsPlugin from "vite-plugin-dts";
+import dtsPlugin from "unplugin-dts/vite";
 import { defineConfig } from "vite";
-import { join } from "path";
 
 export default defineConfig({
-    plugins: [ dtsPlugin({ rollupTypes: true }) ],
+    plugins: [
+        dtsPlugin({
+            include: [ "src" ],
+            bundleTypes: true
+        })
+    ],
     build: {
         minify: false,
         target: "ESNext",
         lib: {
-            entry: join(__dirname, "src/index.ts"),
+            entry: "src/index.ts",
             fileName: "index",
             name: "solidModel"
         },
         rollupOptions: {
             output: { globals: x => x.replace(/\W(\w)/g, (_, x) => x.toUpperCase()) },
-            external: [ "solid-js" ]
+            external: x => !x.match(/^(?:\.|\/|\w:)/)
         }
     }
 });
