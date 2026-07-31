@@ -2,6 +2,7 @@
 # Esclusi
 *.ts
 *.tsx
+*.mts
 *.ppath
 *.css
 *.scss

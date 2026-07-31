@@ -220,8 +220,7 @@ function createForcer(name?: string): Forcer {
 }
 
 /**
- * Compares two property descriptors.
- * TODO: https://github.com/vitejs/vite/issues/23008
+ * Compares two property descriptors
  * @param handler The {@link ReactiveHandler} that will provide the {@link ReactiveHandler.compare} method if needed
  * @param t The object containing the property defined by the descriptors
  * @param k The key of the property defined by the descriptors
@@ -231,7 +230,7 @@ function createForcer(name?: string): Forcer {
 function compareDesc<T extends object, K extends keyof T>(handler: ReactiveHandler, t: T, k: K, next: TypedPropertyDescriptor<T[K]>, prev: TypedPropertyDescriptor<T[K]>) {
 	type temp = keyof typeof next;
 	for (const elm in next)
-		if (elm === ("value" satisfies temp) ? !handler.compare(t, k, next.value!, prev.value!) : next[elm as temp] !== prev[elm as temp])
+		if (elm === "value" satisfies temp ? !handler.compare(t, k, next.value!, prev.value!) : next[elm as temp] !== prev[elm as temp])
 			return false;
 	return true;
 }
