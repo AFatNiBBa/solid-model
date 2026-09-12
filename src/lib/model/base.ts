@@ -51,6 +51,12 @@ export class BaseHandler extends TargetHandler {
      * @param obj The proxied object
      */
     static getRaw<T extends object>(obj: T) { return this.getProxy(obj as BaseHandler).#raw as T; }
+    
+    /**
+     * Gets the attached {@link Proxy} of an object, after creating one if it didn't exist yet
+     * @param obj The proxied object
+     */
+    static as<T extends object>(obj: T) { return this.is(obj) ?? this.create(obj); }
 
     /**
      * Creates a proxy for an object using the current handler.
