@@ -1,5 +1,5 @@
 
-import { batch, createSignal, equalFn, getListener, onCleanup, untrack } from "solid-js";
+import { createSignal, isEqual, getObserver, untrack } from "@solidjs/signals";
 import { Forcer, ForceTarget, Store } from "../helper/type";
 import { Internal } from "../helper/util";
 import { BaseHandler } from "./base";
@@ -57,12 +57,10 @@ export class ReactiveHandler extends BaseHandler implements ProxyHandler<object>
 		const own = Object.hasOwn(t, k);
 		if (!Reflect.deleteProperty(t, k)) return false;
 		if (!own) return true; // The delete operation returns `true` even when the property is not defined directly (Case in which it doesn't do anything)
-		return batch(() => {
-			const store = ReactiveHandler.getStore(t);
-			this.update(t, k, store);
-			this.update(t, Internal.SHAPE, store);
-			return true;
-		});
+		const store = ReactiveHandler.getStore(t);
+		this.update(t, k, store);
+		this.update(t, Internal.SHAPE, store);
+		return true;
 	}
 
     /**
@@ -74,13 +72,11 @@ export class ReactiveHandler extends BaseHandler implements ProxyHandler<object>
 	defineProperty<T extends object, K extends keyof T>(t: T, k: K, desc: TypedPropertyDescriptor<T[K]>) {
 		const prev = Reflect.getOwnPropertyDescriptor(t, k);
 		if (!Reflect.defineProperty(t, k, desc)) return false;
-		return batch(() => {
-			const store = ReactiveHandler.getStore(t);
-			if (!prev) this.update(t, Internal.SHAPE, store);
-			else if (compareDesc(this, t, k, desc, prev as TypedPropertyDescriptor<T[K]>)) return true;
-			this.update(t, k, store);
-			return true;
-		});
+		const store = ReactiveHandler.getStore(t);
+		if (!prev) this.update(t, Internal.SHAPE, store);
+		else if (compareDesc(this, t, k, desc, prev as TypedPropertyDescriptor<T[K]>)) return true;
+		this.update(t, k, store);
+		return true;
 	}
 
     /**
@@ -125,14 +121,12 @@ export class ReactiveHandler extends BaseHandler implements ProxyHandler<object>
 	setPrototypeOf(t: object, proto: object | null, force = false) {
 		if (!force && proto === Reflect.getPrototypeOf(t)) return true;
 		const out = Reflect.setPrototypeOf(t, proto);
-		batch(() => {
-			const store = ReactiveHandler.getStore(t);
-			this.update(t, Internal.PROTO, store);
-			this.update(t, Internal.SHAPE, store);
-			for (const k of Reflect.ownKeys(store) as (keyof typeof store)[])
-				if (!Object.hasOwn(t, k))
-					this.update(t, k, store);
-		});
+		const store = ReactiveHandler.getStore(t);
+		this.update(t, Internal.PROTO, store);
+		this.update(t, Internal.SHAPE, store);
+		for (const k of Reflect.ownKeys(store) as (keyof typeof store)[])
+			if (!Object.hasOwn(t, k))
+				this.update(t, k, store);
 		return out;
 	}
 
@@ -159,20 +153,20 @@ export class ReactiveHandler extends BaseHandler implements ProxyHandler<object>
 	}
 
 	/**
-	 * Tracks the given key in the current effect
+	 * Tracks the given key in the current observer.
+	 * The {@link Forcer} is removed from the {@link Store} as soon as it has no more observers
 	 * @param t The object containing the key
 	 * @param k The key to track for
 	 * @param store The reactive tracker to use
 	 * @returns Whether there was something to track
 	 */
 	track<T extends object>(t: T, k: ForceTarget<T>, store = ReactiveHandler.getStore(t)) {
-		if (!getListener()) return false;
+		if (!getObserver()) return false;
 		const temp = store[k];
 		if (temp === null) return false;
-		const forcer = temp ?? (store[k] = createForcer(this.tag(t, k)));
+		if (temp) return temp.track(), true;
+		const forcer: Forcer = store[k] = createForcer(this.tag(t, k), () => store[k] === forcer && delete store[k]);
 		forcer.track();
-		forcer.count++;
-		onCleanup(() => !--forcer.count && delete store[k]);
 		return true;
 	}
 
@@ -198,7 +192,7 @@ export class ReactiveHandler extends BaseHandler implements ProxyHandler<object>
      * @param prev The old value
      */
 	compare<T extends object, K extends keyof T>(_t: T, _k: K, next: T[K], prev: T[K]) {
-		return equalFn(next, prev);
+		return isEqual(next, prev);
 	}
 
 	/**
@@ -212,14 +206,15 @@ export class ReactiveHandler extends BaseHandler implements ProxyHandler<object>
 }
 
 /**
- * Creates a memory efficient {@link Forcer} using a {@link Signal}
+ * Creates a memory efficient {@link Forcer} using a {@link Signal}.
+ * The underlying {@link Signal} allows writes inside owned scopes, since updates can be caused by any proxy operation
  * @param name A name to keep track of the {@link Forcer}
+ * @param unobserved Function that will be called when the {@link Forcer} loses all of its observers
  * @returns An object which is both a {@link Forcer} and its own {@link Forcer.track} method
  */
-function createForcer(name?: string): Forcer {
-	const [ track, update ] = createSignal(undefined, { name, equals: false, internal: true });
+function createForcer(name: string | undefined, unobserved: () => void): Forcer {
+	const [ track, update ] = createSignal(undefined, { name, equals: false, ownedWrite: true, unobserved });
 	const out = track as unknown as Forcer;
-	out.count = 0;
 	out.track = track;
 	out.update = update;
 	return out;

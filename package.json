@@ -1,6 +1,6 @@
 {
   "name": "solid-model",
-  "version": "9.1.0",
+  "version": "10.0.0",
   "description": "Automatic view model for solid-js",
   "author": "AFatNiBBa",
   "license": "ISC",
@@ -15,13 +15,14 @@
     "save": "npm run build && npm publish"
   },
   "devDependencies": {
+    "@solidjs/signals": "npm:@seanalunni/signals@^2.0.0-rc.21.newest.1",
     "@types/node": "^20.6.0",
     "typescript": "^6.0.3",
     "vite": "^4.4.9",
     "vite-plugin-dts": "^4.5.0"
   },
-  "dependencies": {
-    "solid-js": "^1.7.11"
+  "peerDependencies": {
+    "@solidjs/signals": "^2.0.0-rc.21.newest.1"
   },
   "repository": {
     "type": "git",

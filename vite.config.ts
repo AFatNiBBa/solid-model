@@ -15,7 +15,7 @@ export default defineConfig({
         },
         rollupOptions: {
             output: { globals: x => x.replace(/\W(\w)/g, (_, x) => x.toUpperCase()) },
-            external: [ "solid-js" ]
+            external: [ "@solidjs/signals" ]
         }
     }
 });

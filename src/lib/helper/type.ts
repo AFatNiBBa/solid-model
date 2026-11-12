@@ -1,9 +1,9 @@
 
-import { Accessor } from "solid-js";
+import { Accessor } from "@solidjs/signals";
 import { Internal } from "./util";
 
 /** Object that handles a forcing */
-export type Forcer = { count: number, track(): void, update(): void };
+export type Forcer = { track(): void, update(): void };
 
 /**
  * Object that stores the {@link Forcer} for each forceable part of {@link T}.

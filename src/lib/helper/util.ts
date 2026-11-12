@@ -1,5 +1,5 @@
 
-import { Accessor, MemoOptions, getOwner, createRoot, createMemo, onCleanup, Owner } from "solid-js";
+import { Accessor, MemoOptions, DEV, getObserver, getOwner, onCleanup, createRoot, createMemo, runWithOwner, Owner } from "@solidjs/signals";
 
 /**
  * A collection of symbols that each represents an internal of an object.
@@ -32,31 +32,57 @@ export const getGetter = staticCall((<any>Object.prototype).__lookupGetter__ as 
 
 /**
  * Like {@link createMemo}, but doesn't need an {@link Owner}.
- * The memo is disposed without the need of an {@link Owner} by delegating its disposal to the {@link Owner}s that read it.
- * The memoization happens only if the result has been read from at least one {@link Owner} that is currently active.
+ * The memoization happens only if the result has been read from at least one {@link Owner} that is currently active, otherwise {@link f} is called directly (Unless the internal native memo already exists, in which case it gets read).
+ * The internal native memo is created inside a detached root, and it's disposed only when nothing keeps it alive anymore:
+ * - Untracked reads from an {@link Owner} keep it alive until that {@link Owner} gets cleaned up (Through {@link onOwnerCleanup})
+ * - Tracked reads keep it alive until it loses its last observer (Through {@link MemoOptions.unobserved}, which, unlike {@link onCleanup}, also works inside scopes that forbid children like `createTrackedEffect()`)
+ *
  * If the unowned memo is read by itself during the internal native memo creation, the latter will NOT be created more than once by calling {@link f} directly.
- * If the memo actually reads itself AFTER the memoization, it will fallback to the default behaviour: It will succeed if all the iterations converge to the same value and it will throw otherwise.
- * Since the internal native memo can only be created during reads, it's likely unrelated to the {@link Owner} hierarchy that created it, so I'm making sure it doesn't keep any reference to the latter.
- * If the internal native memo had retained a reference to the calling hierarchy, it could have triggered [this](https://github.com/solidjs/solid/blob/90ba0286b0dbc7802113bf5874687c9032d66969/packages/solid/src/reactive/signal.ts#L1511) part of the complicated algorithm that **"solid-js"** uses to ensure each memo has the correct value.
- * The purpose of that part of the algorithm is likely to prevent child memos from updating unnecessarily when their parent ones would have been updated anyway shortly after (Thus disposing their children).
- * Since the unowned memo is logically disconnected from the calling hierarchy, there's no reason for that part of the algorithm to run in our case.
- * If I allowed that part of the algorithm to run anyway, it would have made it likely for memos to read themselves (For more informations check [this](https://github.com/solidjs/solid/discussions/2489) discussion), which is why I initially couldn't just throw an error when the memo is read by itself, since it wasn't always wrong when that happened.
- * Since the only reason I care at all about the circular reads is just to prevent messing up the caching of the internal native memo, I decided not to re-introduce the error even if I could safely throw it as of now
+ * If the memo actually reads itself AFTER the memoization, it will fallback to the default behaviour of **"solid-js"**.
+ * Since the internal native memo can only be created during reads, it's likely unrelated to the {@link Owner} hierarchy that created it, so I'm making sure it doesn't keep any reference to the latter
  * @param f The function to memoize
  * @param opts The options to pass down to {@link createMemo}
  */
 export function createUnownedMemo<T>(f: Accessor<T>, opts?: MemoOptions<T>): Accessor<T> {
-    var count = 0, disp: (() => void) | undefined, memo: Accessor<T> | undefined | null;
+    var count = 0, observed = false, disp: (() => void) | undefined, memo: Accessor<T> | undefined | null;
+    const tryDispose = () => {
+        if (count || observed || !disp) return;
+        const d = disp;
+        memo = disp = undefined;
+        d();
+    };
+    const unobserved = () => {
+        observed = false;
+        tryDispose();
+        opts?.unobserved?.();
+    };
     return () => {
         if (memo === null) return f();
-        if (!getOwner()) return (memo ? memo : f)();
+        const observer = getObserver();
+        if (!observer && !getOwner()) return (memo ?? f)();
         if (!memo) {
             memo = null;
-            try { [ disp, memo ] = createRoot(d => [ d, createMemo(f, undefined, opts) ], null); }
+            try { [ disp, memo ] = runWithOwner(null, () => createRoot(d => [ d, createMemo(f, { ...opts, unobserved }) ] as const)); }
             catch (err) { throw memo = undefined, err; }
         }
-        count++;
-        onCleanup(() => --count || (disp!(), memo = disp = undefined));
-        return memo();
+        if (observer) observed = true; // The read below subscribes the observer, so `unobserved()` will be called once every observer is gone
+        else if (onOwnerCleanup(() => (count--, tryDispose()))) count++;
+        else return tryDispose(), (memo ?? f)(); // Nothing can keep the memo alive (It gets disposed only if nothing else is keeping it alive)
+        return memo!();
     };
+}
+
+/**
+ * Like {@link onCleanup}, but also works inside scopes that forbid it, like `createTrackedEffect()` and `onSettled()`.
+ * In production builds {@link onCleanup} doesn't check the scope, so the cleanup gets registered on the current {@link Owner} directly.
+ * In development builds the check throws instead, so the cleanup gets registered on the nearest ancestor that accepts it (Found through {@link DEV}), which lives at least as long as the current {@link Owner}
+ * @param fn The function to call when the {@link Owner} gets cleaned up
+ * @returns Whether the cleanup has been registered
+ */
+function onOwnerCleanup(fn: () => void) {
+    for (let owner = getOwner(); owner; owner = DEV?.getParent(owner) ?? null) {
+        try { return runWithOwner(owner, () => onCleanup(fn)), true; }
+        catch (err) { if (!DEV) throw err; }
+    }
+    return false;
 }

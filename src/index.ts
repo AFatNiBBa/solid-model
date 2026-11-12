@@ -1,4 +1,6 @@
 
+import "./lib/helper/fork"; // Checks that the fork is installed before anything else
+
 export * from "./lib/helper/array";
 export * from "./lib/helper/identity";
 export * from "./lib/helper/type";

@@ -8,6 +8,19 @@ This package aims to provide reactive objects, is similiar to `createMutable()` 
 - **Customizable**: Greater control over the interactions with the proxy
 - **Scoped**: It doesn't automatically apply reactivity to children of reactive objects
 
+## Installation
+The package targets **"solid-js"** 2 and relies on `newest()`, which is only provided by the [`@seanalunni/signals`](https://github.com/AFatNiBBa/solid/tree/newest/packages/signals) fork of `@solidjs/signals`.
+Since `@solidjs/signals` is a peer dependency, your app must resolve it to the fork everywhere (`solid-js`'s own dependency included) through an override in its "package.json":
+```json
+{
+  "overrides": {
+    "@solidjs/signals": "npm:@seanalunni/signals@2.0.0-rc.21.newest.1"
+  }
+}
+```
+With pnpm the field is `pnpm.overrides`, and with Yarn it is `resolutions`.
+Do NOT depend on `@seanalunni/signals` directly, otherwise two separate copies of the reactive system would be loaded
+
 ## Documentation
 
 ### Standard `ProxyHandler`s
